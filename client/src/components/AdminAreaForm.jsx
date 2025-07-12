@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
 import { fieldValidate } from "../external/vite-sdk";
 import "../formstyles.css";
-export default function AdminCategoryForm(props) {
-  let [category, setCategory] = useState("");
-  let [errorCategory, setErrorCategory] = useState(props.categoryValidations);
+export default function AdminAreaForm(props) {
+  let [area, setArea] = useState("");
+  let [errorArea, setErrorArea] = useState(props.areaValidations);
   let [flagFormInvalid, setFlagFormInvalid] = useState(false);
   let { action } = props;
   let { selectedEntity } = props;
   let { productList } = props;
-  let { categorySchema } = props;
+  let { areaSchema } = props;
   let [singleFileList, setSingleFileList] = useState(
-    getSingleFileListFromCategorySchema()
+    getSingleFileListFromAreaSchema()
   );
-  function getSingleFileListFromCategorySchema() {
+  function getSingleFileListFromAreaSchema() {
     let list = [];
-    categorySchema.forEach((e, index) => {
+    areaSchema.forEach((e, index) => {
       let obj = {};
       if (e.type == "singleFile") {
         obj["fileAttributeName"] = e.attribute;
@@ -32,47 +32,47 @@ export default function AdminCategoryForm(props) {
   function init() {
     let { action } = props;
     if (action === "add") {
-      setCategory(props.emptyCategory);
+      setArea(props.emptyArea);
     } else if (action === "update") {
       // in edit mode, keep the update button enabled at the beginning
       setFlagFormInvalid(false);
-      setCategory(props.categoryToBeEdited);
+      setArea(props.areaToBeEdited);
     }
   }
   function handleTextFieldChange(event) {
     let name = event.target.name;
-    setCategory({ ...category, [name]: event.target.value });
-    let message = fieldValidate(event, errorCategory);
-    let errCategory = { ...errorCategory };
-    errorCategory[`${name}`].message = message;
-    setErrorCategory(errCategory);
+    setArea({ ...area, [name]: event.target.value });
+    let message = fieldValidate(event, errorArea);
+    let errArea = { ...errorArea };
+    errorArea[`${name}`].message = message;
+    setErrorArea(errArea);
   }
   function handleBlur(event) {
     let name = event.target.name;
-    let message = fieldValidate(event, errorCategory);
-    let errCategory = { ...errorCategory };
-    errorCategory[`${name}`].message = message;
-    setErrorCategory(errCategory);
+    let message = fieldValidate(event, errorArea);
+    let errArea = { ...errorArea };
+    errorArea[`${name}`].message = message;
+    setErrorArea(errArea);
   }
   function handleFocus(event) {
     setFlagFormInvalid(false);
   }
   function checkAllErrors() {
-    for (let field in errorCategory) {
-      if (errorCategory[field].message !== "") {
+    for (let field in errorArea) {
+      if (errorArea[field].message !== "") {
         return true;
       } //if
     } //for
-    let errCategory = { ...errorCategory };
+    let errArea = { ...errorArea };
     let flag = false;
-    for (let field in category) {
-      if (errorCategory[field] && category[field] == "") {
+    for (let field in area) {
+      if (errorArea[field] && area[field] == "") {
         flag = true;
-        errCategory[field].message = "Required...";
+        errArea[field].message = "Required...";
       } //if
     } //for
     if (flag) {
-      setErrorCategory(errCategory);
+      setErrorArea(errArea);
       return true;
     }
     return false;
@@ -86,7 +86,7 @@ export default function AdminCategoryForm(props) {
     setFlagFormInvalid(false);
     if (action == "update") {
       // There might be files in this form, add those also
-      let pr = { ...category };
+      let pr = { ...area };
       for (let i = 0; i < singleFileList.length; i++) {
         let fAName = singleFileList[i].fileAttributeName;
         if (pr[fAName + "New"]) {
@@ -96,10 +96,10 @@ export default function AdminCategoryForm(props) {
           delete pr[fAName + "New"];
         }
       } //for
-      setCategory(pr);
+      setArea(pr);
       props.onFormSubmit(pr);
     } else if (action == "add") {
-      props.onFormSubmit(category);
+      props.onFormSubmit(area);
     }
   };
    return (
@@ -116,17 +116,17 @@ export default function AdminCategoryForm(props) {
                 type="text"
                 className="form-control"
                 name="name"
-                value={category.name}
+                value={area.name}
                 onChange={handleTextFieldChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
-                placeholder="Enter the category"
+                placeholder="Enter the area"
               />
             </div>
             <div className="">
-              {errorCategory.name.message ? (
+              {errorArea.name.message ? (
                 <span className="text-danger">
-                  {errorCategory.name.message}
+                  {errorArea.name.message}
                 </span>
               ) : null}
             </div>
@@ -140,7 +140,7 @@ export default function AdminCategoryForm(props) {
                 type="text"
                 className="form-control"
                 name="description"
-                value={category.description}
+                value={area.description}
                 onChange={handleTextFieldChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
@@ -148,9 +148,9 @@ export default function AdminCategoryForm(props) {
               />
             </div>
             <div className="">
-              {errorCategory.description.message ? (
+              {errorArea.description.message ? (
                 <span className="text-danger">
-                  {errorCategory.description.message}
+                  {errorArea.description.message}
                 </span>
               ) : null}
             </div>

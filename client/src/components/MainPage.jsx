@@ -35,8 +35,8 @@ export default function MainPage() {
         },
 
         {
-          name: "Product Categories",
-          singularName: "Category",
+          name: "Areas",
+          singularName: "Area",
           addFacility: true,
           isReady: true,
           accessLevel: "A",
@@ -56,6 +56,15 @@ export default function MainPage() {
           isReady: true,
           // dbCollection: "users",
           dbCollection: "entries",
+          accessLevel: "A",
+        },
+        {
+          name: "Payments",
+          singularName: "Payment",
+          addFacility: true,
+          isReady: true,
+          // dbCollection: "users",
+          dbCollection: "payments",
           accessLevel: "A",
         },
       ],

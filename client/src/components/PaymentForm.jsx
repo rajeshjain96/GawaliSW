@@ -9,7 +9,7 @@ export default function CustomerForm(props) {
   let [flagFormInvalid, setFlagFormInvalid] = useState(false);
   let { action } = props;
   let { selectedEntity } = props;
-  let { areaList } = props;
+  let { categoryList } = props;
   let { customerSchema } = props;
   let [singleFileList, setSingleFileList] = useState(
     getSingleFileListFromCustomerSchema()
@@ -35,8 +35,8 @@ export default function CustomerForm(props) {
   function init() {
     let { action } = props;
     if (action === "add") {
-      // emptyCustomer.area = props.areaToRetain;
-      // emptyCustomer.areaId = props.areaIdToRetain;
+      // emptyCustomer.category = props.categoryToRetain;
+      // emptyCustomer.categoryId = props.categoryIdToRetain;
       setUser(props.emptyCustomer);
     } else if (action === "update") {
       // in edit mode, keep the update button enabled at the beginning
@@ -237,19 +237,19 @@ export default function CustomerForm(props) {
       setSingleFileList(fl);
     }
   }
-  function handleSelectAreaChange(event) {
+  function handleSelectCategoryChange(event) {
     let index = event.target.selectedIndex; // get selected index, instead of selected value
     var optionElement = event.target.childNodes[index];
-    var selectedAreaId = optionElement.getAttribute("id");
-    let area = event.target.value.trim();
-    let areaId = selectedAreaId;
-    setUser({ ...user, area: area, areaId: areaId });
+    var selectedCategoryId = optionElement.getAttribute("id");
+    let category = event.target.value.trim();
+    let categoryId = selectedCategoryId;
+    setUser({ ...user, category: category, categoryId: categoryId });
   }
 
-  let optionsArea = areaList.map((area, index) =>
-    area.rating != 1 ? (
-      <option value={area.name} key={index} id={area._id}>
-        {area.name}
+  let optionsCategory = categoryList.map((category, index) =>
+    category.rating != 1 ? (
+      <option value={category.name} key={index} id={category._id}>
+        {category.name}
       </option>
     ) : null
   );
@@ -392,7 +392,7 @@ export default function CustomerForm(props) {
 </div>
 
 {/* Area */}
-{/* <div className="col-6 my-2">
+<div className="col-6 my-2">
   <div className="text-bold my-1">
     <label>Area</label>
   </div>
@@ -409,7 +409,7 @@ export default function CustomerForm(props) {
   {errorUser.area.message && (
     <span className="text-danger">{errorUser.area.message}</span>
   )}
-</div> */}
+</div>
 
 {/* Start Date */}
 <div className="col-6 my-2">
@@ -431,7 +431,7 @@ export default function CustomerForm(props) {
 </div>
 
           {/* till here */}
-          {/* <div className="col-6 my-2">
+          <div className="col-6 my-2">
             <div className="text-bold my-1">
               <label>Final Price</label>
             </div>
@@ -454,7 +454,7 @@ export default function CustomerForm(props) {
                 </span>
               ) : null}
             </div>
-          </div> */}
+          </div>
           {/* <div className="col-12 my-2">
             <div className="text-bold my-1">
               <label>Information</label>
@@ -504,19 +504,19 @@ export default function CustomerForm(props) {
           </div> */}
           <div className="col-6 my-2">
             <div className="text-bold my-1">
-              <label>Area</label>
+              <label>Category</label>
             </div>
             <div className="px-0">
               <select
                 className="form-control"
-                name="area"
-                value={user.area  || ""}
-                onChange={handleSelectAreaChange}
+                name="category"
+                value={user.category  || ""}
+                onChange={handleSelectCategoryChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
               >
-                <option> Select Area </option>
-                {optionsArea}
+                <option> Select Category </option>
+                {optionsCategory}
               </select>
             </div>
           </div>

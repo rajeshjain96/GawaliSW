@@ -5,9 +5,9 @@ import {
   ListHeaders,
   Entity,
 } from "../external/vite-sdk";
-import AdminCategoryForm from "./AdminCategoryForm";
+// import AdminProductForm from "./AdminProductForm";
+import CustomerForm from "./CustomerForm";
 import { BeatLoader } from "react-spinners";
-// import ACategory from "./ACategory";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import ModalImport from "./ModalImport";
@@ -16,13 +16,14 @@ import {
   recordsUpdateBulk,
   analyseImportExcelSheet,
 } from "../external/vite-sdk";
+import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 
-export default function AdminCategories(props) {
+export default function Customers(props) {
+  let [customerList, setCustomerList] = useState([]);
+  let [filteredCustomerList, setFilteredCustomerList] = useState([]);
   let [categoryList, setCategoryList] = useState([]);
-  let [productList, setProductList] = useState([]);
   let [action, setAction] = useState("list");
-  let [filteredCategoryList, setFilteredCategoryList] = useState([]);
-  let [categoryToBeEdited, setCategoryToBeEdited] = useState("");
+  let [userToBeEdited, setUserToBeEdited] = useState("");
   let [flagLoad, setFlagLoad] = useState(false);
   let [flagImport, setFlagImport] = useState(false);
   let [message, setMessage] = useState("");
@@ -31,6 +32,7 @@ export default function AdminCategories(props) {
   let [direction, setDirection] = useState("");
   let [sheetData, setSheetData] = useState(null);
   let [selectedFile, setSelectedFile] = useState("");
+  
   let [recordsToBeAdded, setRecordsToBeAdded] = useState([]);
   let [recordsToBeUpdated, setRecordsToBeUpdated] = useState([]);
   let [cntUpdate, setCntUpdate] = useState(0);
@@ -38,146 +40,236 @@ export default function AdminCategories(props) {
   let { selectedEntity } = props;
   let { flagFormInvalid } = props;
   let { flagToggleButton } = props;
-  let { user } = props;
-  let categorySchema = [
+
+  let customerSchema = [
     { attribute: "name", type: "normal" },
-    { attribute: "description", type: "normal" },
+    {
+      attribute: "category",
+      type: "normal",
+      relationalData: true,
+      list: "categoryList",
+      relatedId: "categoryId",
+    },
+    //changed
+    { attribute: "status", type: "normal", defaultValue: "active" },
+    { attribute: "emailId", type: "normal" },
+    { attribute: "mobileNumber", type: "normal" },
+    { attribute: "address", type: "normal" },
+    { attribute: "daily_qty", type: "normal" },
+    { attribute: "area", type: "normal" },
+    { attribute: "start_date", type: "normal" },
+    // {
+    //   attribute: "role",
+    //   type: "normal",
+    //   relationalData: true,
+    //   list: "roleList",
+    //   relatedId: "roleId",
+    // },
+    // { attribute: "roleId", type: "relationalId" },
+    //till here
+    { attribute: "categoryId", type: "relationalId" },
+    // { attribute: "price", type: "normal" },
+    { attribute: "finalPrice", type: "normal" },
+    // {
+    //   attribute: "customerImage",
+    //   type: "singleFile",
+    //   allowedFileType: "image",
+    //   allowedSize: 2,
+    // },
+    // { attribute: "info", type: "text-area" },
   ];
-  let categoryValidations = {
+  let customerValidations = {
     name: { message: "", mxLen: 200, mnLen: 4, onlyDigits: false },
-    description: { message: "" },
+    // price: {
+    //   message: "",
+    // },
+    
+    
+    finalPrice: {
+      message: "",
+      mxLen: 30,
+      mnLen: 2,
+      onlyDigits: true,
+    },
+    //changed
+    // role: { message: "" },
+    emailId: { message: "", onlyDigits: false },
+    status: { message: "" },
+    mobileNumber: {
+      message: "",
+      mxLen: 10,
+      mnLen: 10,
+      onlyDigits: true,
+    },
+    address: { message: "", mxLen: 200 },
+    daily_qty: { message: "", onlyDigits: true },
+    area: { message: "", mxLen: 50 },
+    start_date: { message: "" },
+    //till here
+    // info: { message: "", mxLen: 1000, mnLen: 4, onlyDigits: false },
+    // customerImage: { message: "" },
+    category: { message: "" },
   };
-  let [showInList, setShowInList] = useState(getShowInListFromCategorySchema());
-  let [emptyCategory, setEmptyCategory] = useState(getEmptyCategory());
-  function getShowInListFromCategorySchema() {
-    let list = [];
-    let cnt = 0;
-    categorySchema.forEach((e, index) => {
-      let obj = {};
-      if (e.type != "relationalId" && e.type != "array") {
-        // do not show id of relational data and "array" is sort of sub-collection
-        obj["attribute"] = e.attribute;
-        if (cnt < 5) {
-          obj["show"] = true;
-        } else {
-          obj["show"] = false;
-        }
-        obj["type"] = e.type;
-        if (e.type == "singleFile") {
-          obj["allowedFileType"] = e.allowedFileType;
-        }
-        if (e.type == "text-area") {
-          obj["flagReadMore"] = false;
-        }
-        cnt++;
-        list.push(obj);
-      }
-    });
-    return list;
-  }
-  function getEmptyCategory() {
-    let eCategory = {};
-    categorySchema.forEach((e, index) => {
-      if (e["defaultValue"]) {
-        eCategory[e["attribute"]] = e["defaultValue"];
-      } else {
-        eCategory[e["attribute"]] = "";
-      }
-    });
-    return eCategory;
-  }
+
+  let [showInList, setShowInList] = useState(getShowInList(customerSchema));
+  // let [emptyCustomer, setEmptyProduct] = useState({
+  //   ...getEmptyObject(customerSchema),
+  //   status: "active",     
+  //   role: "",            
+  // });
+  let [emptyCustomer, setEmptyCustomer] = useState({
+    ...getEmptyObject(customerSchema),
+    status: "active",
+    // role: "",
+    roleId: "68691372fa624c1dff2e06be",
+    name: "",
+    emailId: "",
+    mobileNumber: "",
+    address: "",
+    daily_qty: "",
+    area: "",
+    start_date: "",
+    finalPrice: "",
+    // info: "",
+    category: "",
+    categoryId: "",
+    // customerImage: ""
+  });
+  
+  
   useEffect(() => {
     getData();
   }, []);
   async function getData() {
     setFlagLoad(true);
     try {
-      let response = await axios(import.meta.env.VITE_API_URL + "/categories");
-      let eList = await response.data;
-      response = await axios(import.meta.env.VITE_API_URL + "/products");
-      let pList = await response.data;
-      // In the categoryList, add a parameter - product
-      eList.forEach((category) => {
+      // let response = await axios(import.meta.env.VITE_API_URL + "/users");
+      let response = await axios(import.meta.env.VITE_API_URL + "/customers");
+
+let allUsers = await response.data;
+// let pList = allUsers.filter((u) => u.role === "user"); //added by rutuja
+const userRoleId = "68691372fa624c1dff2e06be";
+let pList = allUsers.filter((u) => u.roleId === userRoleId);
+      response = await axios(import.meta.env.VITE_API_URL + "/categories");
+      let cList = await response.data;
+      // Arrange customers is sorted order as per updateDate
+      pList = pList.sort(
+        (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
+      );
+      // In the customerList, add a parameter - category
+      pList.forEach((customer) => {
         // get category (string) from categoryId
-        for (let i = 0; i < pList.length; i++) {
-          if (category.productId == pList[i]._id) {
-            category.product = pList[i].name;
+        for (let i = 0; i < cList.length; i++) {
+          if (customer.categoryId == cList[i]._id) {
+            customer.category = cList[i].name;
             break;
           }
         } //for
       });
-      setCategoryList(eList);
-      setFilteredCategoryList(eList);
-      setProductList(pList);
+      setCustomerList(pList);
+      setFilteredCustomerList(pList);
+      setCategoryList(cList);
     } catch (error) {
       showMessage("Something went wrong, refresh the page");
     }
     setFlagLoad(false);
   }
-  async function handleFormSubmit(category) {
-    // always add user
-    category.user = user.name;
+  async function handleFormSubmit(customer) {
     let message;
     // now remove relational data
-    let categoryForBackEnd = { ...category };
-    for (let key in categoryForBackEnd) {
-      categorySchema.forEach((e, index) => {
+    let customerForBackEnd = { ...customer };
+    for (let key in customerForBackEnd) {
+      customerSchema.forEach((e, index) => {
         if (key == e.attribute && e.relationalData) {
-          delete categoryForBackEnd[key];
+          delete customerForBackEnd[key];
         }
       });
     }
     if (action == "add") {
+      // customer = await addCustomerToBackend(customer);
       setFlagLoad(true);
       try {
+        // let response = await axios.post(
+        //   import.meta.env.VITE_API_URL + "/users",
+        //   customerForBackEnd,
+        //   { headers: { "Content-type": "multipart/form-data" } }
+        // );
         let response = await axios.post(
-          import.meta.env.VITE_API_URL + "/categories",
-          categoryForBackEnd,
+          import.meta.env.VITE_API_URL + "/customers",
+          customerForBackEnd,
           { headers: { "Content-type": "multipart/form-data" } }
         );
-        category = response.data; // received record with _id
-        message = "Category added successfully";
-        // update the category list now.
-        let prList = [...categoryList];
-        prList.push(category);
-        setCategoryList(prList);
-        let fprList = [...filteredCategoryList];
-        fprList.push(category);
-        setFilteredCategoryList(fprList);
+        let addedCustomer = await response.data; //returned  with id
+        // This addedCustomer has id, addDate, updateDate, but the relational data is lost
+        // The original customer has got relational data.
+        for (let key in customer) {
+          customerSchema.forEach((e, index) => {
+            if (key == e.attribute && e.relationalData) {
+              addedCustomer[key] = customer[key];
+            }
+          });
+        }
+        message = "Customer added successfully";
+        // update the customer list now.
+        let prList = [...customerList];
+        prList.push(addedCustomer);
+        prList = prList.sort(
+          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
+        );
+        setCustomerList(prList);
+        let fprList = [...filteredCustomerList];
+        fprList.push(addedCustomer);
+        fprList = fprList.sort(
+          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
+        );
+        setFilteredCustomerList(fprList);
+        // update the list in sorted order of updateDate
         showMessage(message);
         setAction("list");
       } catch (error) {
+        console.log(error);
         showMessage("Something went wrong, refresh the page");
       }
       setFlagLoad(false);
     } //...add
     else if (action == "update") {
-      category._id = categoryToBeEdited._id; // The form does not have id field
+      customer._id = userToBeEdited._id; // The form does not have id field
       setFlagLoad(true);
       try {
+        // let response = await axios.put(
+        //   import.meta.env.VITE_API_URL + "/users",
+        //   customerForBackEnd,
+        //   { headers: { "Content-type": "multipart/form-data" } }
+        // );
         let response = await axios.put(
-          import.meta.env.VITE_API_URL + "/categories",
-          category,
+          import.meta.env.VITE_API_URL + "/customers",
+          customerForBackEnd,
           { headers: { "Content-type": "multipart/form-data" } }
         );
-        let r = await response.data;
-        message = "Category Updated successfully";
-        // update the category list now.
-        let prList = categoryList.map((e, index) => {
-          if (e._id == category._id) return category;
+        customer = await response.data;
+        console.log("customer");
+        console.log(customer);
+        message = "Customer Updated successfully";
+        // update the customer list now.
+        let prList = customerList.map((e, index) => {
+          if (e._id == customer._id) return customer;
           return e;
         });
-        let fprList = filteredCategoryList.map((e, index) => {
-          if (e._id == category._id) return category;
+        prList = prList.sort(
+          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
+        );
+        let fprList = filteredCustomerList.map((e, index) => {
+          if (e._id == customer._id) return customer;
           return e;
         });
-        setCategoryList(prList);
-        setFilteredCategoryList(fprList);
+        fprList = fprList.sort(
+          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
+        );
+        setCustomerList(prList);
+        setFilteredCustomerList(fprList);
         showMessage(message);
         setAction("list");
       } catch (error) {
-        console.log(error);
-
         showMessage("Something went wrong, refresh the page");
       }
     } //else ...(update)
@@ -192,9 +284,16 @@ export default function AdminCategories(props) {
   function handleAddEntityClick() {
     setAction("add");
   }
-  function handleEditButtonClick(category) {
+  function handleEditButtonClick(customer) {
+    // setAction("update");
+    // setUserToBeEdited(customer);
+    let safeCustomer = {
+      ...emptyCustomer,
+      ...customer,
+      info: customer.info || "",
+    };
     setAction("update");
-    setCategoryToBeEdited(category);
+    setUserToBeEdited(safeCustomer);
   }
   function showMessage(message) {
     setMessage(message);
@@ -202,8 +301,7 @@ export default function AdminCategories(props) {
       setMessage("");
     }, 3000);
   }
-  function handleDeleteButtonClick(ans, category) {
-    // await deleteBackendCategory(category.id);
+  function handleDeleteButtonClick(ans, customer) {
     if (ans == "No") {
       // delete operation cancelled
       showMessage("Delete operation cancelled");
@@ -211,24 +309,29 @@ export default function AdminCategories(props) {
     }
     if (ans == "Yes") {
       // delete operation allowed
-      performDeleteOperation(category);
+      performDeleteOperation(customer);
     }
   }
-  async function performDeleteOperation(category) {
+  async function performDeleteOperation(customer) {
+    setFlagLoad(true);
     try {
+      // let response = await axios.delete(
+      //   import.meta.env.VITE_API_URL + "/users/" + customer._id
+      // );
       let response = await axios.delete(
-        import.meta.env.VITE_API_URL + "/categories/" + category._id
+        import.meta.env.VITE_API_URL + "/customers/" + customer._id
       );
       let r = await response.data;
-      message = `Category - ${category.name} deleted successfully.`;
-      //update the category list now.
-      let prList = categoryList.filter((e, index) => e._id != category._id);
-      setCategoryList(prList);
+      message = `Customer - ${customer.name} deleted successfully.`;
+      //update the customer list now.
+      let prList = customerList.filter((e, index) => e._id != customer._id);
+      setCustomerList(prList);
 
-      let fprList = categoryList.filter((e, index) => e._id != category._id);
-      setFilteredCategoryList(fprList);
+      let fprList = customerList.filter((e, index) => e._id != customer._id);
+      setFilteredCustomerList(fprList);
       showMessage(message);
     } catch (error) {
+      console.log(error);
       showMessage("Something went wrong, refresh the page");
     }
     setFlagLoad(false);
@@ -259,7 +362,6 @@ export default function AdminCategories(props) {
       }
       return p;
     });
-    // sEntity.attributes = a;
     setShowInList(a);
   }
   function handleHeaderClick(index) {
@@ -272,7 +374,7 @@ export default function AdminCategories(props) {
       // different field
       d = false;
     }
-    let list = [...filteredCategoryList];
+    let list = [...filteredCustomerList];
     setDirection(d);
     if (d == false) {
       //in ascending order
@@ -297,7 +399,7 @@ export default function AdminCategories(props) {
         return 0;
       });
     }
-    setFilteredCategoryList(list);
+    setFilteredCustomerList(list);
     setSortedField(field);
   }
   function handleSrNoClick() {
@@ -309,7 +411,7 @@ export default function AdminCategories(props) {
       d = false;
     }
 
-    let list = [...filteredCategoryList];
+    let list = [...filteredCustomerList];
     setDirection(!direction);
     if (d == false) {
       //in ascending order
@@ -335,7 +437,7 @@ export default function AdminCategories(props) {
       });
     }
     // setSelectedList(list);
-    setFilteredCategoryList(list);
+    setFilteredCustomerList(list);
     setSortedField("updateDate");
   }
   function handleFormTextChangeValidations(message, index) {
@@ -349,12 +451,12 @@ export default function AdminCategories(props) {
   function performSearchOperation(searchText) {
     let query = searchText.trim();
     if (query.length == 0) {
-      setFilteredCategoryList(categoryList);
+      setFilteredCustomerList(customerList);
       return;
     }
-    let searchedCategories = [];
-    searchedCategories = filterByShowInListAttributes(query);
-    setFilteredCategoryList(searchedCategories);
+    let searchedCustomers = [];
+    searchedCustomers = filterByShowInListAttributes(query);
+    setFilteredCustomerList(searchedCustomers);
   }
   function filterByName(query) {
     let fList = [];
@@ -367,17 +469,17 @@ export default function AdminCategories(props) {
   }
   function filterByShowInListAttributes(query) {
     let fList = [];
-    for (let i = 0; i < categoryList.length; i++) {
+    for (let i = 0; i < customerList.length; i++) {
       for (let j = 0; j < showInList.length; j++) {
         if (showInList[j].show) {
           let parameterName = showInList[j].attribute;
           if (
-            categoryList[i][parameterName] &&
-            categoryList[i][parameterName]
+            customerList[i][parameterName] &&
+            customerList[i][parameterName]
               .toLowerCase()
               .includes(query.toLowerCase())
           ) {
-            fList.push(categoryList[i]);
+            fList.push(customerList[i]);
             break;
           }
         }
@@ -408,13 +510,13 @@ export default function AdminCategories(props) {
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       // const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
       setSheetData(jsonData);
-      let result = analyseImportExcelSheet(jsonData, categoryList);
+      let result = analyseImportExcelSheet(jsonData, customerList);
       if (result.message) {
         showMessage(result.message);
       } else {
         showImportAnalysis(result);
       }
-      // analyseSheetData(jsonData, productList);
+      // analyseSheetData(jsonData, customerList);
     };
     // reader.readAsBinaryString(file);
     reader.readAsArrayBuffer(file);
@@ -436,34 +538,45 @@ export default function AdminCategories(props) {
     let result;
     try {
       if (recordsToBeAdded.length > 0) {
+        // result = await recordsAddBulk(
+        //   recordsToBeAdded,
+        //   "users",
+        //   customerList,
+        //   import.meta.env.VITE_API_URL
+        // );
         result = await recordsAddBulk(
           recordsToBeAdded,
-          "categories",
-          categoryList,
+          "customers",
+          customerList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setCategoryList(result.updatedList);
-          setFilteredCategoryList(result.updatedList);
+          setCustomerList(result.updatedList);
+          setFilteredCustomerList(result.updatedList);
         }
         showMessage(result.message);
       }
       if (recordsToBeUpdated.length > 0) {
+        // result = await recordsUpdateBulk(
+        //   recordsToBeUpdated,
+        //   "users",
+        //   customerList,
+        //   import.meta.env.VITE_API_URL
+        // );
         result = await recordsUpdateBulk(
           recordsToBeUpdated,
-          "categories",
-          categoryList,
+          "customers",
+          customerList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setCategoryList(result.updatedList);
-          setFilteredCategoryList(result.updatedList);
+          setCustomerList(result.updatedList);
+          setFilteredCustomerList(result.updatedList);
         }
         showMessage(result.message);
       } //if
     } catch (error) {
       console.log(error);
-
       showMessage("Something went wrong, refresh the page");
     }
     setFlagLoad(false);
@@ -485,8 +598,8 @@ export default function AdminCategories(props) {
         message={message}
         selectedEntity={selectedEntity}
         flagToggleButton={flagToggleButton}
-        filteredList={filteredCategoryList}
-        mainList={categoryList}
+        filteredList={filteredCustomerList}
+        mainList={customerList}
         showInList={showInList}
         onListClick={handleListClick}
         onAddEntityClick={handleAddEntityClick}
@@ -494,36 +607,20 @@ export default function AdminCategories(props) {
         onExcelFileUploadClick={handleExcelFileUploadClick}
         onClearSelectedFile={handleClearSelectedFile}
       />
-      {filteredCategoryList.length == 0 && categoryList.length != 0 && (
+
+      {filteredCustomerList.length == 0 && customerList.length != 0 && (
         <div className="text-center">Nothing to show</div>
       )}
-      {categoryList.length == 0 && (
+      {customerList.length == 0 && (
         <div className="text-center">List is empty</div>
       )}
-      {(action == "add" || action == "update") && (
-        <div className="row">
-          <AdminCategoryForm
-            categorySchema={categorySchema}
-            categoryValidations={categoryValidations}
-            emptyCategory={emptyCategory}
-            productList={productList}
-            selectedEntity={selectedEntity}
-            categoryToBeEdited={categoryToBeEdited}
-            action={action}
-            flagFormInvalid={flagFormInvalid}
-            onFormSubmit={handleFormSubmit}
-            onFormCloseClick={handleFormCloseClick}
-            onFormTextChangeValidations={handleFormTextChangeValidations}
-          />
-        </div>
-      )}
-      {action == "list" && filteredCategoryList.length != 0 && (
+      {action == "list" && filteredCustomerList.length != 0 && (
         <CheckBoxHeaders
           showInList={showInList}
           onListCheckBoxClick={handleListCheckBoxClick}
         />
       )}
-      {action == "list" && filteredCategoryList.length != 0 && (
+      {action == "list" && filteredCustomerList.length != 0 && (
         <div className="row   my-2 mx-auto  p-1">
           <div className="col-1">
             <a
@@ -550,19 +647,36 @@ export default function AdminCategories(props) {
           <div className="col-1">&nbsp;</div>
         </div>
       )}
+      {(action == "add" || action == "update") && (
+        <div className="row">
+          <CustomerForm
+            customerSchema={customerSchema}
+            customerValidations={customerValidations}
+            emptyCustomer={emptyCustomer}
+            categoryList={categoryList}
+            selectedEntity={selectedEntity}
+            userToBeEdited={userToBeEdited}
+            action={action}
+            flagFormInvalid={flagFormInvalid}
+            onFormSubmit={handleFormSubmit}
+            onFormCloseClick={handleFormCloseClick}
+            onFormTextChangeValidations={handleFormTextChangeValidations}
+          />
+        </div>
+      )}
       {action == "list" &&
-        filteredCategoryList.length != 0 &&
-        filteredCategoryList.map((e, index) => (
+        filteredCustomerList.length != 0 &&
+        filteredCustomerList.map((e, index) => (
           <Entity
             entity={e}
             key={index + 1}
             index={index}
-            user={user}
             sortedField={sortedField}
             direction={direction}
-            listSize={filteredCategoryList.length}
+            listSize={filteredCustomerList.length}
             selectedEntity={selectedEntity}
             showInList={showInList}
+            VITE_API_URL={import.meta.env.VITE_API_URL}
             onEditButtonClick={handleEditButtonClick}
             onDeleteButtonClick={handleDeleteButtonClick}
             onToggleText={handleToggleText}

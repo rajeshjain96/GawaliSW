@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-let categorySchema = new mongoose.Schema(
+let areaSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -12,6 +12,6 @@ let categorySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const Category = mongoose.model("Category", categorySchema);
+const Area = mongoose.model("Area", areaSchema);
 
-module.exports = Category;
+module.exports = Area;

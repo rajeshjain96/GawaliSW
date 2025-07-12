@@ -1,24 +1,24 @@
 const { app } = require("../init.js");
 const { ObjectId } = require("mongodb");
-async function getAllCategories() {
+async function getAllAreas() {
   const db = app.locals.db;
-  const collection = db.collection("categories");
+  const collection = db.collection("areas");
   let list = await collection.find().toArray();
   return list;
 }
-async function getCategoryById(id) {
-  let obj = await Category.findById(id);
+async function getAreaById(id) {
+  let obj = await Area.findById(id);
   return obj;
 }
-async function addCategory(obj) {
+async function addArea(obj) {
   const db = app.locals.db;
-  const collection = db.collection("categories");
+  const collection = db.collection("areas");
   let response = await collection.insertOne(obj);
   return obj;
 }
-async function updateCategory(obj) {
+async function updateArea(obj) {
   const db = app.locals.db;
-  const collection = db.collection("categories");
+  const collection = db.collection("areas");
   let id = obj._id;
   delete obj._id;
   obj = await collection.updateOne(
@@ -28,18 +28,18 @@ async function updateCategory(obj) {
   console.log("Updated");
   return obj;
 }
-async function deleteCategory(id) {
+async function deleteArea(id) {
   const db = app.locals.db;
-  const collection = db.collection("categories");
+  const collection = db.collection("areas");
   let obj = await collection.deleteOne({
     _id: ObjectId.createFromHexString(id),
   });
   return obj;
 }
-module.exports = CategoryService = {
-  getAllCategories,
-  getCategoryById,
-  addCategory,
-  updateCategory,
-  deleteCategory,
+module.exports = AreaService = {
+  getAllAreas,
+  getAreaById,
+  addArea,
+  updateArea,
+  deleteArea,
 };

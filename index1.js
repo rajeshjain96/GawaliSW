@@ -5,19 +5,22 @@ let db;
 const app = express();
 var cors = require("cors");
 
-const CategoryRouter = require("./routers/category.router.js");
+const AreaRouter = require("./routers/area.router.js");
 const productRouter = require("./routers/product.router.js");
 //added
 const customerRouter = require("./routers/customer.router.js");
 const EntryRouter = require("./routers/entry.router.js");
+const PaymentRouter = require("./routers/payment.router.js");
+
 
 app.use(cors());
 app.use(express.json());
-app.use("/categories", CategoryRouter);
+app.use("/areas", AreaRouter);
 app.use("/products", productRouter);
 //added
 app.use("/customers", customerRouter);
 app.use("/entries", EntryRouter);
+app.use("/payments", PaymentRouter);
 
 let connectionString = `mongodb://127.0.0.1:27017/restaurantdb`;
 connectToDatabase();

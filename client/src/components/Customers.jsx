@@ -19,9 +19,9 @@ import {
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 
 export default function Customers(props) {
-  let [productList, setProductList] = useState([]);
-  let [filteredProductList, setFilteredProductList] = useState([]);
-  let [categoryList, setCategoryList] = useState([]);
+  let [customerList, setCustomerList] = useState([]);
+  let [filteredCustomerList, setFilteredCustomerList] = useState([]);
+  let [areaList, setAreaList] = useState([]);
   let [action, setAction] = useState("list");
   let [userToBeEdited, setUserToBeEdited] = useState("");
   let [flagLoad, setFlagLoad] = useState(false);
@@ -44,11 +44,11 @@ export default function Customers(props) {
   let customerSchema = [
     { attribute: "name", type: "normal" },
     {
-      attribute: "category",
+      attribute: "area",
       type: "normal",
       relationalData: true,
-      list: "categoryList",
-      relatedId: "categoryId",
+      list: "areaList",
+      relatedId: "areaId",
     },
     //changed
     { attribute: "status", type: "normal", defaultValue: "active" },
@@ -56,7 +56,7 @@ export default function Customers(props) {
     { attribute: "mobileNumber", type: "normal" },
     { attribute: "address", type: "normal" },
     { attribute: "daily_qty", type: "normal" },
-    { attribute: "area", type: "normal" },
+    // { attribute: "area", type: "normal" },
     { attribute: "start_date", type: "normal" },
     // {
     //   attribute: "role",
@@ -67,9 +67,9 @@ export default function Customers(props) {
     // },
     // { attribute: "roleId", type: "relationalId" },
     //till here
-    { attribute: "categoryId", type: "relationalId" },
+    { attribute: "areaId", type: "relationalId" },
     // { attribute: "price", type: "normal" },
-    { attribute: "finalPrice", type: "normal" },
+    // { attribute: "finalPrice", type: "normal" },
     // {
     //   attribute: "customerImage",
     //   type: "singleFile",
@@ -85,12 +85,12 @@ export default function Customers(props) {
     // },
     
     
-    finalPrice: {
-      message: "",
-      mxLen: 30,
-      mnLen: 2,
-      onlyDigits: true,
-    },
+    // finalPrice: {
+    //   message: "",
+    //   mxLen: 30,
+    //   mnLen: 2,
+    //   onlyDigits: true,
+    // },
     //changed
     // role: { message: "" },
     emailId: { message: "", onlyDigits: false },
@@ -103,12 +103,12 @@ export default function Customers(props) {
     },
     address: { message: "", mxLen: 200 },
     daily_qty: { message: "", onlyDigits: true },
-    area: { message: "", mxLen: 50 },
+    // area: { message: "", mxLen: 50 },
     start_date: { message: "" },
     //till here
     // info: { message: "", mxLen: 1000, mnLen: 4, onlyDigits: false },
     // customerImage: { message: "" },
-    category: { message: "" },
+    area: { message: "" },
   };
 
   let [showInList, setShowInList] = useState(getShowInList(customerSchema));
@@ -117,7 +117,7 @@ export default function Customers(props) {
   //   status: "active",     
   //   role: "",            
   // });
-  let [emptyCustomer, setEmptyProduct] = useState({
+  let [emptyCustomer, setEmptyCustomer] = useState({
     ...getEmptyObject(customerSchema),
     status: "active",
     // role: "",
@@ -127,12 +127,12 @@ export default function Customers(props) {
     mobileNumber: "",
     address: "",
     daily_qty: "",
-    area: "",
+    // area: "",
     start_date: "",
-    finalPrice: "",
+    // finalPrice: "",
     // info: "",
-    category: "",
-    categoryId: "",
+    area: "",
+    areaId: "",
     // customerImage: ""
   });
   
@@ -143,79 +143,86 @@ export default function Customers(props) {
   async function getData() {
     setFlagLoad(true);
     try {
-      let response = await axios(import.meta.env.VITE_API_URL + "/users");
+      // let response = await axios(import.meta.env.VITE_API_URL + "/users");
+      let response = await axios(import.meta.env.VITE_API_URL + "/customers");
+
 let allUsers = await response.data;
 // let pList = allUsers.filter((u) => u.role === "user"); //added by rutuja
 const userRoleId = "68691372fa624c1dff2e06be";
 let pList = allUsers.filter((u) => u.roleId === userRoleId);
-      response = await axios(import.meta.env.VITE_API_URL + "/categories");
+      response = await axios(import.meta.env.VITE_API_URL + "/areas");
       let cList = await response.data;
-      // Arrange products is sorted order as per updateDate
+      // Arrange customers is sorted order as per updateDate
       pList = pList.sort(
         (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
       );
-      // In the productList, add a parameter - category
-      pList.forEach((product) => {
-        // get category (string) from categoryId
+      // In the customerList, add a parameter - area
+      pList.forEach((customer) => {
+        // get area (string) from areaId
         for (let i = 0; i < cList.length; i++) {
-          if (product.categoryId == cList[i]._id) {
-            product.category = cList[i].name;
+          if (customer.areaId == cList[i]._id) {
+            customer.area = cList[i].name;
             break;
           }
         } //for
       });
-      setProductList(pList);
-      setFilteredProductList(pList);
-      setCategoryList(cList);
+      setCustomerList(pList);
+      setFilteredCustomerList(pList);
+      setAreaList(cList);
     } catch (error) {
       showMessage("Something went wrong, refresh the page");
     }
     setFlagLoad(false);
   }
-  async function handleFormSubmit(product) {
+  async function handleFormSubmit(customer) {
     let message;
     // now remove relational data
-    let productForBackEnd = { ...product };
-    for (let key in productForBackEnd) {
+    let customerForBackEnd = { ...customer };
+    for (let key in customerForBackEnd) {
       customerSchema.forEach((e, index) => {
         if (key == e.attribute && e.relationalData) {
-          delete productForBackEnd[key];
+          delete customerForBackEnd[key];
         }
       });
     }
     if (action == "add") {
-      // product = await addProductToBackend(product);
+      // customer = await addCustomerToBackend(customer);
       setFlagLoad(true);
       try {
+        // let response = await axios.post(
+        //   import.meta.env.VITE_API_URL + "/users",
+        //   customerForBackEnd,
+        //   { headers: { "Content-type": "multipart/form-data" } }
+        // );
         let response = await axios.post(
-          import.meta.env.VITE_API_URL + "/users",
-          productForBackEnd,
+          import.meta.env.VITE_API_URL + "/customers",
+          customerForBackEnd,
           { headers: { "Content-type": "multipart/form-data" } }
         );
-        let addedProduct = await response.data; //returned  with id
-        // This addedProduct has id, addDate, updateDate, but the relational data is lost
-        // The original product has got relational data.
-        for (let key in product) {
+        let addedCustomer = await response.data; //returned  with id
+        // This addedCustomer has id, addDate, updateDate, but the relational data is lost
+        // The original customer has got relational data.
+        for (let key in customer) {
           customerSchema.forEach((e, index) => {
             if (key == e.attribute && e.relationalData) {
-              addedProduct[key] = product[key];
+              addedCustomer[key] = customer[key];
             }
           });
         }
         message = "Customer added successfully";
-        // update the product list now.
-        let prList = [...productList];
-        prList.push(addedProduct);
+        // update the customer list now.
+        let prList = [...customerList];
+        prList.push(addedCustomer);
         prList = prList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        setProductList(prList);
-        let fprList = [...filteredProductList];
-        fprList.push(addedProduct);
+        setCustomerList(prList);
+        let fprList = [...filteredCustomerList];
+        fprList.push(addedCustomer);
         fprList = fprList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        setFilteredProductList(fprList);
+        setFilteredCustomerList(fprList);
         // update the list in sorted order of updateDate
         showMessage(message);
         setAction("list");
@@ -226,35 +233,48 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       setFlagLoad(false);
     } //...add
     else if (action == "update") {
-      product._id = userToBeEdited._id; // The form does not have id field
+      customer._id = userToBeEdited._id; // The form does not have id field
       setFlagLoad(true);
       try {
+        // let response = await axios.put(
+        //   import.meta.env.VITE_API_URL + "/users",
+        //   customerForBackEnd,
+        //   { headers: { "Content-type": "multipart/form-data" } }
+        // );
         let response = await axios.put(
-          import.meta.env.VITE_API_URL + "/users",
-          productForBackEnd,
+          import.meta.env.VITE_API_URL + "/customers",
+          customerForBackEnd,
           { headers: { "Content-type": "multipart/form-data" } }
         );
-        product = await response.data;
-        console.log("product");
-        console.log(product);
-        message = "Product Updated successfully";
-        // update the product list now.
-        let prList = productList.map((e, index) => {
-          if (e._id == product._id) return product;
+        // customer = await response.data;
+        customer = await response.data;
+
+// 🔁 Populate area (name) from areaId again
+let areaObj = areaList.find((a) => a._id === customer.areaId);
+if (areaObj) {
+  customer.area = areaObj.name;
+}
+
+        console.log("customer");
+        console.log(customer);
+        message = "Customer Updated successfully";
+        // update the customer list now.
+        let prList = customerList.map((e, index) => {
+          if (e._id == customer._id) return customer;
           return e;
         });
         prList = prList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        let fprList = filteredProductList.map((e, index) => {
-          if (e._id == product._id) return product;
+        let fprList = filteredCustomerList.map((e, index) => {
+          if (e._id == customer._id) return customer;
           return e;
         });
         fprList = fprList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        setProductList(prList);
-        setFilteredProductList(fprList);
+        setCustomerList(prList);
+        setFilteredCustomerList(fprList);
         showMessage(message);
         setAction("list");
       } catch (error) {
@@ -272,16 +292,16 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
   function handleAddEntityClick() {
     setAction("add");
   }
-  function handleEditButtonClick(product) {
+  function handleEditButtonClick(customer) {
     // setAction("update");
-    // setUserToBeEdited(product);
-    let safeProduct = {
+    // setUserToBeEdited(customer);
+    let safeCustomer = {
       ...emptyCustomer,
-      ...product,
-      info: product.info || "",
+      ...customer,
+      info: customer.info || "",
     };
     setAction("update");
-    setUserToBeEdited(safeProduct);
+    setUserToBeEdited(safeCustomer);
   }
   function showMessage(message) {
     setMessage(message);
@@ -289,7 +309,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       setMessage("");
     }, 3000);
   }
-  function handleDeleteButtonClick(ans, product) {
+  function handleDeleteButtonClick(ans, customer) {
     if (ans == "No") {
       // delete operation cancelled
       showMessage("Delete operation cancelled");
@@ -297,23 +317,26 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
     }
     if (ans == "Yes") {
       // delete operation allowed
-      performDeleteOperation(product);
+      performDeleteOperation(customer);
     }
   }
-  async function performDeleteOperation(product) {
+  async function performDeleteOperation(customer) {
     setFlagLoad(true);
     try {
+      // let response = await axios.delete(
+      //   import.meta.env.VITE_API_URL + "/users/" + customer._id
+      // );
       let response = await axios.delete(
-        import.meta.env.VITE_API_URL + "/users/" + product._id
+        import.meta.env.VITE_API_URL + "/customers/" + customer._id
       );
       let r = await response.data;
-      message = `Product - ${product.name} deleted successfully.`;
-      //update the product list now.
-      let prList = productList.filter((e, index) => e._id != product._id);
-      setProductList(prList);
+      message = `Customer - ${customer.name} deleted successfully.`;
+      //update the customer list now.
+      let prList = customerList.filter((e, index) => e._id != customer._id);
+      setCustomerList(prList);
 
-      let fprList = productList.filter((e, index) => e._id != product._id);
-      setFilteredProductList(fprList);
+      let fprList = customerList.filter((e, index) => e._id != customer._id);
+      setFilteredCustomerList(fprList);
       showMessage(message);
     } catch (error) {
       console.log(error);
@@ -359,7 +382,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       // different field
       d = false;
     }
-    let list = [...filteredProductList];
+    let list = [...filteredCustomerList];
     setDirection(d);
     if (d == false) {
       //in ascending order
@@ -384,7 +407,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         return 0;
       });
     }
-    setFilteredProductList(list);
+    setFilteredCustomerList(list);
     setSortedField(field);
   }
   function handleSrNoClick() {
@@ -396,7 +419,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       d = false;
     }
 
-    let list = [...filteredProductList];
+    let list = [...filteredCustomerList];
     setDirection(!direction);
     if (d == false) {
       //in ascending order
@@ -422,7 +445,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       });
     }
     // setSelectedList(list);
-    setFilteredProductList(list);
+    setFilteredCustomerList(list);
     setSortedField("updateDate");
   }
   function handleFormTextChangeValidations(message, index) {
@@ -436,12 +459,12 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
   function performSearchOperation(searchText) {
     let query = searchText.trim();
     if (query.length == 0) {
-      setFilteredProductList(productList);
+      setFilteredCustomerList(customerList);
       return;
     }
-    let searchedProducts = [];
-    searchedProducts = filterByShowInListAttributes(query);
-    setFilteredProductList(searchedProducts);
+    let searchedCustomers = [];
+    searchedCustomers = filterByShowInListAttributes(query);
+    setFilteredCustomerList(searchedCustomers);
   }
   function filterByName(query) {
     let fList = [];
@@ -454,17 +477,17 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
   }
   function filterByShowInListAttributes(query) {
     let fList = [];
-    for (let i = 0; i < productList.length; i++) {
+    for (let i = 0; i < customerList.length; i++) {
       for (let j = 0; j < showInList.length; j++) {
         if (showInList[j].show) {
           let parameterName = showInList[j].attribute;
           if (
-            productList[i][parameterName] &&
-            productList[i][parameterName]
+            customerList[i][parameterName] &&
+            customerList[i][parameterName]
               .toLowerCase()
               .includes(query.toLowerCase())
           ) {
-            fList.push(productList[i]);
+            fList.push(customerList[i]);
             break;
           }
         }
@@ -495,13 +518,13 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       // const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
       setSheetData(jsonData);
-      let result = analyseImportExcelSheet(jsonData, productList);
+      let result = analyseImportExcelSheet(jsonData, customerList);
       if (result.message) {
         showMessage(result.message);
       } else {
         showImportAnalysis(result);
       }
-      // analyseSheetData(jsonData, productList);
+      // analyseSheetData(jsonData, customerList);
     };
     // reader.readAsBinaryString(file);
     reader.readAsArrayBuffer(file);
@@ -523,28 +546,40 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
     let result;
     try {
       if (recordsToBeAdded.length > 0) {
+        // result = await recordsAddBulk(
+        //   recordsToBeAdded,
+        //   "users",
+        //   customerList,
+        //   import.meta.env.VITE_API_URL
+        // );
         result = await recordsAddBulk(
           recordsToBeAdded,
-          "users",
-          productList,
+          "customers",
+          customerList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setProductList(result.updatedList);
-          setFilteredProductList(result.updatedList);
+          setCustomerList(result.updatedList);
+          setFilteredCustomerList(result.updatedList);
         }
         showMessage(result.message);
       }
       if (recordsToBeUpdated.length > 0) {
+        // result = await recordsUpdateBulk(
+        //   recordsToBeUpdated,
+        //   "users",
+        //   customerList,
+        //   import.meta.env.VITE_API_URL
+        // );
         result = await recordsUpdateBulk(
           recordsToBeUpdated,
-          "users",
-          productList,
+          "customers",
+          customerList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setProductList(result.updatedList);
-          setFilteredProductList(result.updatedList);
+          setCustomerList(result.updatedList);
+          setFilteredCustomerList(result.updatedList);
         }
         showMessage(result.message);
       } //if
@@ -571,8 +606,8 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         message={message}
         selectedEntity={selectedEntity}
         flagToggleButton={flagToggleButton}
-        filteredList={filteredProductList}
-        mainList={productList}
+        filteredList={filteredCustomerList}
+        mainList={customerList}
         showInList={showInList}
         onListClick={handleListClick}
         onAddEntityClick={handleAddEntityClick}
@@ -581,19 +616,19 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         onClearSelectedFile={handleClearSelectedFile}
       />
 
-      {filteredProductList.length == 0 && productList.length != 0 && (
+      {filteredCustomerList.length == 0 && customerList.length != 0 && (
         <div className="text-center">Nothing to show</div>
       )}
-      {productList.length == 0 && (
+      {customerList.length == 0 && (
         <div className="text-center">List is empty</div>
       )}
-      {action == "list" && filteredProductList.length != 0 && (
+      {action == "list" && filteredCustomerList.length != 0 && (
         <CheckBoxHeaders
           showInList={showInList}
           onListCheckBoxClick={handleListCheckBoxClick}
         />
       )}
-      {action == "list" && filteredProductList.length != 0 && (
+      {action == "list" && filteredCustomerList.length != 0 && (
         <div className="row   my-2 mx-auto  p-1">
           <div className="col-1">
             <a
@@ -626,7 +661,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
             customerSchema={customerSchema}
             customerValidations={customerValidations}
             emptyCustomer={emptyCustomer}
-            categoryList={categoryList}
+            areaList={areaList}
             selectedEntity={selectedEntity}
             userToBeEdited={userToBeEdited}
             action={action}
@@ -638,15 +673,15 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         </div>
       )}
       {action == "list" &&
-        filteredProductList.length != 0 &&
-        filteredProductList.map((e, index) => (
+        filteredCustomerList.length != 0 &&
+        filteredCustomerList.map((e, index) => (
           <Entity
             entity={e}
             key={index + 1}
             index={index}
             sortedField={sortedField}
             direction={direction}
-            listSize={filteredProductList.length}
+            listSize={filteredCustomerList.length}
             selectedEntity={selectedEntity}
             showInList={showInList}
             VITE_API_URL={import.meta.env.VITE_API_URL}
@@ -1112,7 +1147,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
 //       if (recordsToBeAdded.length > 0) {
 //         result = await recordsAddBulk(
 //           recordsToBeAdded,
-//           "products",
+//           "customers",
 //           productList,
 //           import.meta.env.VITE_API_URL
 //         );
@@ -1125,7 +1160,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
 //       if (recordsToBeUpdated.length > 0) {
 //         result = await recordsUpdateBulk(
 //           recordsToBeUpdated,
-//           "products",
+//           "customers",
 //           productList,
 //           import.meta.env.VITE_API_URL
 //         );

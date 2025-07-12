@@ -1,4 +1,4 @@
-import AdminCategories from "./AdminCategories";
+import AdminAreas from "./AdminAreas";
 import AdminDailyEntry from "./AdminDailyEntry";
 // import AdminCustomers from "./AdminCustomers";
 import AdminEnquiries from "./AdminEnquiries";
@@ -8,6 +8,7 @@ import AdminReportActivities from "./AdminReportActivities";
 import AdminRoles from "./AdminRoles";
 import AdminUsers from "./AdminUsers";
 import Customers from "./Customers"
+import Payments from "./Payments";
 
 export default function ContentPage(props) {
   let { selectedEntity } = props;
@@ -37,8 +38,8 @@ export default function ContentPage(props) {
           flagToggleButton={flagToggleButton}
         />
       )} */}
-      {selectedEntity.name == "Product Categories" && (
-        <AdminCategories
+      {selectedEntity.name == "Areas" && (
+        <AdminAreas
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
           user={user}
@@ -66,6 +67,12 @@ export default function ContentPage(props) {
       )}
      {selectedEntity.name == "DailyEntries" && (
         <AdminDailyEntry
+          selectedEntity={selectedEntity}
+          flagToggleButton={flagToggleButton}
+        />
+      )}
+      {selectedEntity.name == "Payments" && (
+        <Payments
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />

@@ -9,7 +9,10 @@ const enquiryRouter = require("./routers/enquiry.router.js");
 const QuotationRouter = require("./routers/quotation.router.js");
 const customerRouter = require("./routers/customer.router.js");
 const fruitRouter = require("./routers/fruits.router.js");
+//added
 const userRouter = require("./routers/user.router.js");
+const entryRouter = require("./routers/entry.router.js");
+//till here
 const roleRouter = require("./routers/role.router.js");
 const categoryRouter = require("./routers/category.router.js");
 const staffRouter = require("./routers/staff.router.js");
@@ -28,6 +31,8 @@ app.use(express.urlencoded({ extended: false }));
 // Activity logging middleware
 app.use("/specials", specialRouter); // authentication not required
 app.use("/users", userRouter); // authentication done inside this file
+app.use("/entries", auntheticateUser, logActivity, entryRouter); //added
+
 app.use("/products", auntheticateUser, logActivity, productRouter);
 app.use("/enquiries", auntheticateUser, logActivity, enquiryRouter);
 app.use("/quotations", auntheticateUser, logActivity, QuotationRouter);

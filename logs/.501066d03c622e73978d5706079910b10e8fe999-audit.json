@@ -1,0 +1,40 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\.501066d03c622e73978d5706079910b10e8fe999-audit.json",
+    "files": [
+        {
+            "date": 1751712863672,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\error-2025-07-05.log",
+            "hash": "7bcabdd63f7cdf915f018ecdb75d95217851f64bc0207505cec15e696180ce54"
+        },
+        {
+            "date": 1751826479612,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\error-2025-07-06.log",
+            "hash": "d6b38316ad88eff05471e9e10764ac9bd4c9eaab63f0abc39d77dbe8e8447d9c"
+        },
+        {
+            "date": 1752035452826,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\error-2025-07-09.log",
+            "hash": "9e0bcf4981442386c283f366a653b1503a0c7f6fd7f799c6585bde82d8f8240f"
+        },
+        {
+            "date": 1752116483313,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\error-2025-07-10.log",
+            "hash": "5d3a0b7a5f231992bef32e36dbf888ca0bb5b8d78bd7c94abd0b660cf0d44fd7"
+        },
+        {
+            "date": 1752204844791,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\error-2025-07-11.log",
+            "hash": "892e89909ae91b0abe01baec6c265ee359bf66be6eb8ef12fdbedd9c6cd0928e"
+        },
+        {
+            "date": 1752292867594,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\error-2025-07-12.log",
+            "hash": "e56e7dc95a4ca2320ebf7370b5d8a040010ed9afca450e80855195bea786ee88"
+        }
+    ],
+    "hashType": "sha256"
+}

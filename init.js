@@ -4,7 +4,7 @@ const dotenv = require("dotenv").config();
 // const mongodb = require("mongodb");
 // const url = "mongodb://127.0.0.1:27017";
 const client = new MongoClient(process.env.MONGODB_URL);
-const dbName = "ecommdb";
+const dbName = "milkdbnew";
 
 let db;
 const app = express();

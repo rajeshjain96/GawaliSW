@@ -1,0 +1,45 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\.ab706eb247a7980b79d1dff02ffecf2dec871418-audit.json",
+    "files": [
+        {
+            "date": 1751712863667,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-05.log",
+            "hash": "45ad51cb61a87f50fe6839d3cf4716127fb70df3645ba531091c41ac89be8d66"
+        },
+        {
+            "date": 1751826479575,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-06.log",
+            "hash": "72f4dcc3a91b48f03f91f9d83a3ab9adc70d5cc4c18369e9a4569b8fd3acb162"
+        },
+        {
+            "date": 1751826810984,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-07.log",
+            "hash": "4262fddb61bbac2f8c8eca3e68397551c048b0c56af298d02e031534b7b8b87d"
+        },
+        {
+            "date": 1752035452791,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-09.log",
+            "hash": "5be980538e8566f4ae1d7d2c30ad39fb2c57273ae5af338a548792a533e907b1"
+        },
+        {
+            "date": 1752116483303,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-10.log",
+            "hash": "bc1db49fc4e182235ffd2c62b3c56b3681a0d9933f29170e3d1f347794eab196"
+        },
+        {
+            "date": 1752204844762,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-11.log",
+            "hash": "82c3a3907d28e8e208975d5a4023adaae2cb5aa0ce429ea5f8e116642c96b732"
+        },
+        {
+            "date": 1752292867563,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-12.log",
+            "hash": "4bafe85fc02f1b8d6b90a4aca789d1a7b52b1a558113a91938eabf4d93ad0f05"
+        }
+    ],
+    "hashType": "sha256"
+}

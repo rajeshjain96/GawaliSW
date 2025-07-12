@@ -41,6 +41,23 @@ export default function MainPage() {
           isReady: true,
           accessLevel: "A",
         },
+        {
+          name: "Customers",
+          singularName: "Customer",
+          addFacility: true,
+          isReady: true,
+          dbCollection: "users",
+          accessLevel: "A",
+        },
+        {
+          name: "DailyEntries",
+          singularName: "DailyEntry",
+          addFacility: true,
+          isReady: true,
+          // dbCollection: "users",
+          dbCollection: "entries",
+          accessLevel: "A",
+        },
       ],
     },
     {
@@ -101,6 +118,7 @@ export default function MainPage() {
       setMessage("");
     }, 3000);
   }
+
   function handleEntityClick(selectedIndex) {
     // user clicked to same entity again, so unselect it
     console.log(menus[selectedMenuIndex].entities[selectedIndex].name);
@@ -114,10 +132,14 @@ export default function MainPage() {
       setView("home");
       return;
     }
+    // console.log("selectedEntity.name" , selectedEntity.name);
     setSelectedEntityIndex(selectedIndex);
     setSelectedEntity(menus[selectedMenuIndex].entities[selectedIndex]);
     setView("content");
   }
+
+
+
   function handleSideBarMenuClick(index) {
     if (selectedMenuIndex == index) {
       setSelectedMenuIndex(-1);

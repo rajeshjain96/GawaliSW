@@ -7,10 +7,18 @@ var cors = require("cors");
 
 const CategoryRouter = require("./routers/category.router.js");
 const productRouter = require("./routers/product.router.js");
+//added
+const customerRouter = require("./routers/customer.router.js");
+const EntryRouter = require("./routers/entry.router.js");
+
 app.use(cors());
 app.use(express.json());
 app.use("/categories", CategoryRouter);
 app.use("/products", productRouter);
+//added
+app.use("/customers", customerRouter);
+app.use("/entries", EntryRouter);
+
 let connectionString = `mongodb://127.0.0.1:27017/restaurantdb`;
 connectToDatabase();
 async function connectToDatabase() {
@@ -40,3 +48,4 @@ async function connectToDatabase() {
 //   }
 // }
 // module.exports = db;
+module.exports = { app };

@@ -1,26 +1,26 @@
 const { app } = require("../init.js");
 const { ObjectId } = require("mongodb");
 
-async function getAllCustomers() {
+async function getAllPayments() {
   const db = app.locals.db;
-  const collection = db.collection("users");
+  const collection = db.collection("payments");
   let list = await collection.find().toArray();
   return list;
 }
 
-async function getCustomerById(id) {
+async function getPaymentById(id) {
   const db = app.locals.db;
-  const collection = db.collection("users");
-  const customerObj = await collection.findOne({
+  const collection = db.collection("payments");
+  const paymentObj = await collection.findOne({
     _id: ObjectId.createFromHexString(id),
   });
-  console.log(customerObj);
-  return customerObj;
+  console.log(paymentObj);
+  return paymentObj;
 }
 
-async function addCustomer(obj) {
+async function addPayment(obj) {
   const db = app.locals.db;
-  const collection = db.collection("users");
+  const collection = db.collection("payments");
   const keys = Object.keys(obj);
   for (let key of keys) {
     if (typeof obj[key] === "string") {
@@ -32,10 +32,10 @@ async function addCustomer(obj) {
   return obj;
 }
 
-async function addManyCustomers(users) {
+async function addManyPayments(payments) {
   const db = app.locals.db;
-  const collection = db.collection("users");
-  const result = await collection.insertMany(users);
+  const collection = db.collection("payments");
+  const result = await collection.insertMany(payments);
   const insertedIds = Object.values(result.insertedIds);
   const insertedDocs = await collection
     .find({ _id: { $in: insertedIds } })
@@ -43,10 +43,10 @@ async function addManyCustomers(users) {
   return insertedDocs;
 }
 
-async function updateManyCustomers(users) {
+async function updateManyPayments(payments) {
   const db = app.locals.db;
-  const collection = db.collection("users");
-  const operations = users.map((user) => {
+  const collection = db.collection("payments");
+  const operations = payments.map((user) => {
     const { _id, ...fieldsToUpdate } = user;
     return {
       updateOne: {
@@ -56,28 +56,43 @@ async function updateManyCustomers(users) {
     };
   });
   const result = await collection.bulkWrite(operations);
-  const updatedIds = users.map((u) => ObjectId.createFromHexString(u._id));
-  const updatedCustomers = await collection
+  const updatedIds = payments.map((u) => ObjectId.createFromHexString(u._id));
+  const updatedPayments = await collection
     .find({ _id: { $in: updatedIds } })
     .toArray();
-  return updatedCustomers;
+  return updatedPayments;
 }
 
-async function updateCustomer(obj) {
+// async function updatePayment(obj) {
+//   const db = app.locals.db;
+//   const collection = db.collection("payments");
+//   let id = obj._id;
+//   delete obj._id;
+//   let result = await collection.updateOne(
+//     { _id: ObjectId.createFromHexString(id) },
+//     { $set: obj }
+//   );
+//   return result;
+// }
+async function updatePayment(obj) {
   const db = app.locals.db;
-  const collection = db.collection("users");
+  const collection = db.collection("payments");
   let id = obj._id;
+  if (!id) throw new Error("Missing _id for updatePayment");
   delete obj._id;
+
   let result = await collection.updateOne(
-    { _id: ObjectId.createFromHexString(id) },
+    { _id: new ObjectId(id) }, // safer than createFromHexString
     { $set: obj }
   );
   return result;
 }
 
-async function deleteCustomer(id) {
+
+
+async function deletePayment(id) {
   const db = app.locals.db;
-  const collection = db.collection("users");
+  const collection = db.collection("payments");
   let obj = await collection.deleteOne({
     _id: ObjectId.createFromHexString(id),
   });
@@ -88,14 +103,14 @@ function normalizeNewlines(text) {
   return text.replace(/\r\n/g, "\n");
 }
 
-module.exports = CustomerService = {
-  getAllCustomers,
-  getCustomerById,
-  addCustomer,
-  addManyCustomers,
-  updateManyCustomers,
-  updateCustomer,
-  deleteCustomer,
+module.exports = PaymentService = {
+  getAllPayments,
+  getPaymentById,
+  addPayment,
+  addManyPayments,
+  updateManyPayments,
+  updatePayment,
+  deletePayment,
 };
 
 

@@ -67,6 +67,15 @@ export default function MainPage() {
           dbCollection: "payments",
           accessLevel: "A",
         },
+        {
+          name: "Calculations",
+          singularName: "Calculation",
+          addFacility: true,
+          isReady: true,
+          // dbCollection: "users",
+          dbCollection: "calculations",
+          accessLevel: "A",
+        },
       ],
     },
     {

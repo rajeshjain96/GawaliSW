@@ -9,6 +9,7 @@ import AdminRoles from "./AdminRoles";
 import AdminUsers from "./AdminUsers";
 import Customers from "./Customers"
 import Payments from "./Payments";
+import Calculations from "./Caculations"
 
 export default function ContentPage(props) {
   let { selectedEntity } = props;
@@ -57,6 +58,7 @@ export default function ContentPage(props) {
           flagToggleButton={flagToggleButton}
         />
       )}
+     
       
       {/* added by rutuja */}
       {selectedEntity.name == "Customers" && (
@@ -73,6 +75,12 @@ export default function ContentPage(props) {
       )}
       {selectedEntity.name == "Payments" && (
         <Payments
+          selectedEntity={selectedEntity}
+          flagToggleButton={flagToggleButton}
+        />
+      )}
+       {selectedEntity.name == "Calculations" && (
+        <Calculations
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />

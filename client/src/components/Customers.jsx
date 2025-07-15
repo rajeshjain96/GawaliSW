@@ -32,7 +32,7 @@ export default function Customers(props) {
   let [direction, setDirection] = useState("");
   let [sheetData, setSheetData] = useState(null);
   let [selectedFile, setSelectedFile] = useState("");
-  
+
   let [recordsToBeAdded, setRecordsToBeAdded] = useState([]);
   let [recordsToBeUpdated, setRecordsToBeUpdated] = useState([]);
   let [cntUpdate, setCntUpdate] = useState(0);
@@ -83,8 +83,7 @@ export default function Customers(props) {
     // price: {
     //   message: "",
     // },
-    
-    
+
     // finalPrice: {
     //   message: "",
     //   mxLen: 30,
@@ -114,8 +113,8 @@ export default function Customers(props) {
   let [showInList, setShowInList] = useState(getShowInList(customerSchema));
   // let [emptyCustomer, setEmptyProduct] = useState({
   //   ...getEmptyObject(customerSchema),
-  //   status: "active",     
-  //   role: "",            
+  //   status: "active",
+  //   role: "",
   // });
   let [emptyCustomer, setEmptyCustomer] = useState({
     ...getEmptyObject(customerSchema),
@@ -135,8 +134,7 @@ export default function Customers(props) {
     areaId: "",
     // customerImage: ""
   });
-  
-  
+
   useEffect(() => {
     getData();
   }, []);
@@ -146,10 +144,10 @@ export default function Customers(props) {
       // let response = await axios(import.meta.env.VITE_API_URL + "/users");
       let response = await axios(import.meta.env.VITE_API_URL + "/customers");
 
-let allUsers = await response.data;
-// let pList = allUsers.filter((u) => u.role === "user"); //added by rutuja
-const userRoleId = "68691372fa624c1dff2e06be";
-let pList = allUsers.filter((u) => u.roleId === userRoleId);
+      let allUsers = await response.data;
+      // let pList = allUsers.filter((u) => u.role === "user"); //added by rutuja
+      const userRoleId = "68691372fa624c1dff2e06be";
+      let pList = allUsers.filter((u) => u.roleId === userRoleId);
       response = await axios(import.meta.env.VITE_API_URL + "/areas");
       let cList = await response.data;
       // Arrange customers is sorted order as per updateDate
@@ -248,12 +246,10 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         );
         // customer = await response.data;
         customer = await response.data;
-
-// 🔁 Populate area (name) from areaId again
-let areaObj = areaList.find((a) => a._id === customer.areaId);
-if (areaObj) {
-  customer.area = areaObj.name;
-}
+        let areaObj = areaList.find((a) => a._id === customer.areaId);
+        if (areaObj) {
+          customer.area = areaObj.name;
+        }
 
         console.log("customer");
         console.log(customer);

@@ -1,0 +1,4 @@
+15/7/2025, 11:14:31 pm — [ERROR] — guest encountered error during PUT /payments — hex string must be 24 characters
+15/7/2025, 11:14:56 pm — [ERROR] — guest encountered error during PUT /payments — hex string must be 24 characters
+15/7/2025, 11:20:23 pm — [ERROR] — guest encountered error during PUT /payments — hex string must be 24 characters
+15/7/2025, 11:30:59 pm — [ERROR] — guest encountered error during PUT /payments — Missing _id for updatePayment

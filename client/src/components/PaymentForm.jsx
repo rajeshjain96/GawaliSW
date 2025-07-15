@@ -3,20 +3,20 @@ import { fieldValidate } from "../external/vite-sdk";
 import "../formstyles.css";
 import { SingleFileUpload } from "../external/vite-sdk";
 
-export default function CustomerForm(props) {
+export default function PaymentForm(props) {
   let [user, setUser] = useState({});
-  let [errorUser, setErrorUser] = useState(props.customerValidations);
+  let [errorUser, setErrorUser] = useState(props.paymentValidations);
   let [flagFormInvalid, setFlagFormInvalid] = useState(false);
   let { action } = props;
   let { selectedEntity } = props;
   let { categoryList } = props;
-  let { customerSchema } = props;
+  let { paymentSchema } = props;
   let [singleFileList, setSingleFileList] = useState(
-    getSingleFileListFromCustomerSchema()
+    getSingleFileListFromPaymentSchema()
   );
-  function getSingleFileListFromCustomerSchema() {
+  function getSingleFileListFromPaymentSchema() {
     let list = [];
-    customerSchema.forEach((e, index) => {
+    paymentSchema.forEach((e, index) => {
       let obj = {};
       if (e.type == "singleFile") {
         obj["fileAttributeName"] = e.attribute;
@@ -29,35 +29,55 @@ export default function CustomerForm(props) {
   }
   useEffect(() => {
     window.scroll(0, 0);
-     init();
-    //setUser(props.emptyCustomer);
+    init();
+    //setUser(props.emptyPayment);
   }, []);
   function init() {
     let { action } = props;
     if (action === "add") {
-      // emptyCustomer.category = props.categoryToRetain;
-      // emptyCustomer.categoryId = props.categoryIdToRetain;
-      setUser(props.emptyCustomer);
+      // emptyPayment.category = props.categoryToRetain;
+      // emptyPayment.categoryId = props.categoryIdToRetain;
+      setUser(props.emptyPayment);
     } else if (action === "update") {
       // in edit mode, keep the update button enabled at the beginning
       setFlagFormInvalid(false);
       setUser(props.userToBeEdited);
     }
   }
+  // function handleTextFieldChange(event) {
+  //   let name = event.target.name;
+  //   setUser({ ...user, [name]: event.target.value });
+  //   let message = fieldValidate(event, errorUser);
+  //   let errPayment = { ...errorUser };
+  //   errorUser[`${name}`].message = message;
+  //   setErrorUser(errPayment);
+  // }
   function handleTextFieldChange(event) {
     let name = event.target.name;
-    setUser({ ...user, [name]: event.target.value });
+    let value = event.target.value;
+  
+    let updatedUser = { ...user, [name]: value };
+  
+    if (name === "totalMonthlyAmount" || name === "paidAmount") {
+      const total = parseFloat(updatedUser.totalMonthlyAmount || 0);
+      const paid = parseFloat(updatedUser.paidAmount || 0);
+      updatedUser.balanceAmount = (total - paid).toFixed(2);
+    }
+  
+    setUser(updatedUser);
+  
     let message = fieldValidate(event, errorUser);
-    let errCustomer = { ...errorUser };
+    let errPayment = { ...errorUser };
     errorUser[`${name}`].message = message;
-    setErrorUser(errCustomer);
+    setErrorUser(errPayment);
   }
+  
   function handleBlur(event) {
     let name = event.target.name;
     let message = fieldValidate(event, errorUser);
-    let errCustomer = { ...errorUser };
+    let errPayment = { ...errorUser };
     errorUser[`${name}`].message = message;
-    setErrorUser(errCustomer);
+    setErrorUser(errPayment);
   }
   function handleFocus(event) {
     setFlagFormInvalid(false);
@@ -89,8 +109,6 @@ export default function CustomerForm(props) {
   //     }
   //   }
 
-    
-
   //   if (flag) {
   //     setErrorUser(errProduct);
   //     return true;
@@ -100,34 +118,33 @@ export default function CustomerForm(props) {
   function checkAllErrors() {
     console.log("▶️ User object:", user);
     console.log("▶️ Error object before validation:", errorUser);
-  
+
     for (let field in errorUser) {
       if (errorUser[field].message !== "") {
         return true;
       }
     }
-  
-    let errCustomer = { ...errorUser };
+
+    let errPayment = { ...errorUser };
     let flag = false;
-  
+
     for (let field in user) {
       if (["role"].includes(field)) continue;
-  
+
       if (errorUser[field] && user[field] == "") {
         flag = true;
-        errCustomer[field].message = "Required...";
+        errPayment[field].message = "Required...";
       }
     }
-  
+
     if (flag) {
-      console.log("⛔ Error object after validation:", errCustomer); // <-- add this
-      setErrorUser(errCustomer);
+      console.log("⛔ Error object after validation:", errPayment); // <-- add this
+      setErrorUser(errPayment);
       return true;
     }
-  
+
     return false;
   }
-  
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -155,7 +172,6 @@ export default function CustomerForm(props) {
     } else if (action == "add") {
       console.log("📝 Submitting form with data:", user);
       props.onFormSubmit(user);
-
     }
   };
   function handleFileChange(selectedFile, fileIndex, message) {
@@ -176,9 +192,9 @@ export default function CustomerForm(props) {
         ["file" + fileIndex]: renamedFile,
         [singleFileList[fileIndex].fileAttributeName]: newName,
       });
-      let errCustomer = { ...errorUser };
-      errCustomer[singleFileList[fileIndex].fileAttributeName].message = message;
-      setErrorUser(errCustomer);
+      let errPayment = { ...errorUser };
+      errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
+      setErrorUser(errPayment);
       // setErrorUser({ ...errorUser, message: message });
     }
   }
@@ -189,9 +205,9 @@ export default function CustomerForm(props) {
         ...user,
         [singleFileList[fileIndex].fileAttributeName]: "",
       });
-      let errCustomer = { ...errorUser };
-      errCustomer[singleFileList[fileIndex].fileAttributeName].message = message;
-      setErrorUser(errCustomer);
+      let errPayment = { ...errorUser };
+      errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
+      setErrorUser(errPayment);
     } else if (action == "update") {
       let newFileName = "";
       if (selectedFile) {
@@ -205,9 +221,9 @@ export default function CustomerForm(props) {
         ["file" + fileIndex]: selectedFile,
         [singleFileList[fileIndex].fileAttributeName + "New"]: newFileName,
       });
-      let errCustomer = { ...errorUser };
-      errCustomer[singleFileList[fileIndex].fileAttributeName].message = message;
-      setErrorUser(errCustomer);
+      let errPayment = { ...errorUser };
+      errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
+      setErrorUser(errPayment);
     }
   }
   function handleFileChangeUpdateMode(selectedFile, fileIndex, message) {
@@ -225,9 +241,9 @@ export default function CustomerForm(props) {
       [singleFileList[fileIndex].fileAttributeName + "New"]: newFileName,
       // [singleFileList[fileIndex].fileAttributeName]: selectedFile.name,
     });
-    let errCustomer = { ...errorUser };
-    errCustomer[singleFileList[fileIndex].fileAttributeName].message = message;
-    setErrorUser(errCustomer);
+    let errPayment = { ...errorUser };
+    errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
+    setErrorUser(errPayment);
   }
   function handleCancelChangeImageClick() {
     if (action == "update") {
@@ -258,6 +274,7 @@ export default function CustomerForm(props) {
     <div className="p-2">
       <form className="text-thick p-4" onSubmit={handleFormSubmit}>
         {/* row starts */}
+        {/* name */}
         <div className="form-group row align-items-center">
           <div className="col-6 my-2">
             <div className="text-bold my-1">
@@ -268,7 +285,7 @@ export default function CustomerForm(props) {
                 type="text"
                 className="form-control"
                 name="name"
-                value={user.name  || ""}
+                value={user.name || ""}
                 onChange={handleTextFieldChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
@@ -281,245 +298,112 @@ export default function CustomerForm(props) {
               ) : null}
             </div>
           </div>
+
+          {/* total milk delivered */}
           <div className="col-6 my-2">
             <div className="text-bold my-1">
-              <label>Email-ID</label>
+              <label>Total Milk Delivered</label>
             </div>
-            <div className="px-0">
-              <input
-                type="email"
-                className="form-control"
-                name="emailId"
-                value={user.emailId || ""}
-                onChange={handleTextFieldChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-                placeholder="Enter emailId : "
-              />
-            </div>
-            <div className="">
-              {errorUser.emailId.message ? (
-                <span className="text-danger">
-                  {errorUser.emailId.message}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          {/* change from here */}
-              {/* Mobile Number */}
-<div className="col-6 my-2">
-  <div className="text-bold my-1">
-    <label>Mobile Number</label>
-  </div>
-  <input
-    type="text"
-    className="form-control"
-    name="mobileNumber"
-    value={user.mobileNumber  || ""}
-    onChange={handleTextFieldChange}
-    onBlur={handleBlur}
-    onFocus={handleFocus}
-    placeholder="Enter 10-digit mobile number"
-  />
-  {errorUser.mobileNumber.message && (
-    <span className="text-danger">{errorUser.mobileNumber.message}</span>
-  )}
-</div>
-
-{/* Address */}
-<div className="col-6 my-2">
-  <div className="text-bold my-1">
-    <label>Address</label>
-  </div>
-  <input
-    type="text"
-    className="form-control"
-    name="address"
-    value={user.address || ""}
-    onChange={handleTextFieldChange}
-    onBlur={handleBlur}
-    onFocus={handleFocus}
-    placeholder="Enter address"
-  />
-  {errorUser.address.message && (
-    <span className="text-danger">{errorUser.address.message}</span>
-  )}
-</div>
-{/* Status */}
-<div className="col-6 my-2">
-  <div className="text-bold my-1">
-    <label>Status</label>
-  </div>
-  <div className="px-0">
-    <select
-      className="form-control"
-      name="status"
-      value={user.status || "active"}
-      onChange={handleTextFieldChange}
-      onBlur={handleBlur}
-      onFocus={handleFocus}
-    >
-      <option value="">Select Status</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
-    </select>
-  </div>
-  <div className="">
-    {errorUser.status?.message && (
-      <span className="text-danger">{errorUser.status.message}</span>
-    )}
-  </div>
-</div>
-
-{/* Daily Quantity */}
-<div className="col-6 my-2">
-  <div className="text-bold my-1">
-    <label>Daily Milk Quantity (Litres)</label>
-  </div>
-  <input
-    type="text"
-    className="form-control"
-    name="daily_qty"
-    value={user.daily_qty || ""}
-    onChange={handleTextFieldChange}
-    onBlur={handleBlur}
-    onFocus={handleFocus}
-    placeholder="e.g., 1.5"
-  />
-  {errorUser.daily_qty.message && (
-    <span className="text-danger">{errorUser.daily_qty.message}</span>
-  )}
-</div>
-
-{/* Area */}
-<div className="col-6 my-2">
-  <div className="text-bold my-1">
-    <label>Area</label>
-  </div>
-  <input
-    type="text"
-    className="form-control"
-    name="area"
-    value={user.area || ""}
-    onChange={handleTextFieldChange}
-    onBlur={handleBlur}
-    onFocus={handleFocus}
-    placeholder="e.g., Hadapsar"
-  />
-  {errorUser.area.message && (
-    <span className="text-danger">{errorUser.area.message}</span>
-  )}
-</div>
-
-{/* Start Date */}
-<div className="col-6 my-2">
-  <div className="text-bold my-1">
-    <label>Start Date</label>
-  </div>
-  <input
-    type="date"
-    className="form-control"
-    name="start_date"
-    value={user.start_date || ""}
-    onChange={handleTextFieldChange}
-    onBlur={handleBlur}
-    onFocus={handleFocus}
-  />
-  {errorUser.start_date.message && (
-    <span className="text-danger">{errorUser.start_date.message}</span>
-  )}
-</div>
-
-          {/* till here */}
-          <div className="col-6 my-2">
-            <div className="text-bold my-1">
-              <label>Final Price</label>
-            </div>
-            <div className="px-0">
+            <div className=" px-0">
               <input
                 type="text"
                 className="form-control"
-                name="finalPrice"
-                value={user.finalPrice || ""}
+                name="totalDelivered"
+                value={user.totalDelivered || ""}
                 onChange={handleTextFieldChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
-                placeholder="Enter discounted price in Rs."
+                placeholder="Enter Total milk delivered qty"
               />
             </div>
             <div className="">
-              {errorUser.finalPrice.message ? (
+              {errorUser.totalDelivered.message ? (
                 <span className="text-danger">
-                  {errorUser.finalPrice.message}
+                  {errorUser.totalDelivered.message}
                 </span>
               ) : null}
             </div>
           </div>
-          {/* <div className="col-12 my-2">
+
+          {/* bill amount */}
+          <div className="col-6 my-2">
             <div className="text-bold my-1">
-              <label>Information</label>
+              <label>Monthly Bill Amount</label>
             </div>
-            <div className="px-0">
-              <textarea
+            <div className=" px-0">
+              <input
+                type="text"
                 className="form-control"
-                name="info"
-                style={{ height: "300px" }}
-                rows={5}
-                // cols={20}
-                value={user.info || ""}
+                name="totalMonthlyAmount"
+                value={user.totalMonthlyAmount || ""}
                 onChange={handleTextFieldChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
-                placeholder="Enter information"
-              ></textarea>
+                placeholder="Enter Monthly Bill Amount"
+              />
             </div>
             <div className="">
-              {errorUser.info.message ? (
-                <span className="text-danger">{errorUser.info.message}</span>
-              ) : null}
-            </div>
-          </div> */}
-          {/* <div className="col-12 my-2">
-            <div className="text-bold my-1">
-              <label>Customer Image</label>
-            </div>
-            <SingleFileUpload
-              action={action}
-              singleFileList={singleFileList}
-              name="customerImage"
-              fileName={user.customerImage}
-              VITE_API_URL={import.meta.env.VITE_API_URL}
-              onFileChange={handleFileChange}
-              onFileChangeUpdateMode={handleFileChangeUpdateMode}
-              onCancelChangeImageClick={handleCancelChangeImageClick}
-              onFileRemove={handleFileRemove}
-            />
-            <div className="">
-              {errorUser.customerImage.message ? (
+              {errorUser.totalMonthlyAmount.message ? (
                 <span className="text-danger">
-                  {errorUser.customerImage.message}
+                  {errorUser.totalMonthlyAmount.message}
                 </span>
               ) : null}
             </div>
-          </div> */}
+          </div>
+
+          {/* Paid amount */}
           <div className="col-6 my-2">
             <div className="text-bold my-1">
-              <label>Category</label>
+              <label>Paid Amount</label>
+            </div>
+            <div className=" px-0">
+              <input
+                type="text"
+                className="form-control"
+                name="paidAmount"
+                value={user.paidAmount || ""}
+                onChange={handleTextFieldChange}
+                onBlur={handleBlur}
+                onFocus={handleFocus}
+                placeholder="Enter Amount Paid"
+              />
+            </div>
+            <div className="">
+              {errorUser.paidAmount.message ? (
+                <span className="text-danger">
+                  {errorUser.paidAmount.message}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Mode of Payment */}
+          {/* <div className="col-6 my-2">
+            <div className="text-bold my-1">
+              <label>Mode of Payment</label>
             </div>
             <div className="px-0">
               <select
-                className="form-control"
-                name="category"
-                value={user.category  || ""}
-                onChange={handleSelectCategoryChange}
+                name="modeOfPayment"
+                className="form-select"
+                value={user.modeOfPayment || "Cash"}
+                onChange={handleTextFieldChange}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
               >
-                <option> Select Category </option>
-                {optionsCategory}
+                <option value="Cash">Cash</option>
+                <option value="Online">Online</option>
               </select>
             </div>
-          </div>
+            <div className="">
+              {errorUser.modeOfPayment?.message && (
+                <span className="text-danger">
+                  {errorUser.modeOfPayment.message}
+                </span>
+              )}
+            </div>
+          </div> */}
+
           <div className="col-12">
             <button
               className="btn btn-primary"

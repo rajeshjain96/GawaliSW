@@ -6,8 +6,9 @@ import {
   Entity,
 } from "../external/vite-sdk";
 // import AdminProductForm from "./AdminProductForm";
-import CustomerForm from "./CustomerForm";
+import PaymentForm from "./PaymentForm";
 import { BeatLoader } from "react-spinners";
+import { getMonthlySummary } from "./MonthlySummary";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import ModalImport from "./ModalImport";
@@ -18,9 +19,9 @@ import {
 } from "../external/vite-sdk";
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 
-export default function Customers(props) {
-  let [customerList, setCustomerList] = useState([]);
-  let [filteredCustomerList, setFilteredCustomerList] = useState([]);
+export default function Payments(props) {
+  let [paymentList, setPaymentList] = useState([]);
+  let [filteredPaymentList, setFilteredPaymentList] = useState([]);
   let [categoryList, setCategoryList] = useState([]);
   let [action, setAction] = useState("list");
   let [userToBeEdited, setUserToBeEdited] = useState("");
@@ -32,7 +33,13 @@ export default function Customers(props) {
   let [direction, setDirection] = useState("");
   let [sheetData, setSheetData] = useState(null);
   let [selectedFile, setSelectedFile] = useState("");
-  
+  const today = new Date();
+  const currentMonth = (today.getMonth() + 1).toString().padStart(2, "0"); // "01" to "12"
+  const currentYear = today.getFullYear().toString();
+  const [monthlySummary, setMonthlySummary] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+
   let [recordsToBeAdded, setRecordsToBeAdded] = useState([]);
   let [recordsToBeUpdated, setRecordsToBeUpdated] = useState([]);
   let [cntUpdate, setCntUpdate] = useState(0);
@@ -41,237 +48,236 @@ export default function Customers(props) {
   let { flagFormInvalid } = props;
   let { flagToggleButton } = props;
 
-  let customerSchema = [
+  let paymentSchema = [
     { attribute: "name", type: "normal" },
-    {
-      attribute: "category",
-      type: "normal",
-      relationalData: true,
-      list: "categoryList",
-      relatedId: "categoryId",
-    },
-    //changed
-    { attribute: "status", type: "normal", defaultValue: "active" },
-    { attribute: "emailId", type: "normal" },
-    { attribute: "mobileNumber", type: "normal" },
-    { attribute: "address", type: "normal" },
-    { attribute: "daily_qty", type: "normal" },
-    { attribute: "area", type: "normal" },
-    { attribute: "start_date", type: "normal" },
-    // {
-    //   attribute: "role",
-    //   type: "normal",
-    //   relationalData: true,
-    //   list: "roleList",
-    //   relatedId: "roleId",
-    // },
-    // { attribute: "roleId", type: "relationalId" },
-    //till here
-    { attribute: "categoryId", type: "relationalId" },
-    // { attribute: "price", type: "normal" },
-    { attribute: "finalPrice", type: "normal" },
-    // {
-    //   attribute: "customerImage",
-    //   type: "singleFile",
-    //   allowedFileType: "image",
-    //   allowedSize: 2,
-    // },
-    // { attribute: "info", type: "text-area" },
+    { attribute: "totalDelivered", type: "normal" },
+    { attribute: "totalMonthlyAmount", type: "normal" },
+    { attribute: "balanceAmount", type: "normal" },
+    { attribute: "paidAmount", type: "normal" },
+    // { attribute: "modeOfPayment", type: "normal" },
   ];
-  let customerValidations = {
+  let paymentValidations = {
     name: { message: "", mxLen: 200, mnLen: 4, onlyDigits: false },
-    // price: {
-    //   message: "",
-    // },
-    
-    
-    finalPrice: {
+    totalDelivered: {
       message: "",
-      mxLen: 30,
-      mnLen: 2,
       onlyDigits: true,
+      mxLen: 5, // assuming no one delivers >99999 litres
     },
-    //changed
-    // role: { message: "" },
-    emailId: { message: "", onlyDigits: false },
-    status: { message: "" },
-    mobileNumber: {
+    totalMonthlyAmount: {
       message: "",
-      mxLen: 10,
-      mnLen: 10,
       onlyDigits: true,
+      mxLen: 7, // assuming no bills >10L
     },
-    address: { message: "", mxLen: 200 },
-    daily_qty: { message: "", onlyDigits: true },
-    area: { message: "", mxLen: 50 },
-    start_date: { message: "" },
-    //till here
-    // info: { message: "", mxLen: 1000, mnLen: 4, onlyDigits: false },
-    // customerImage: { message: "" },
-    category: { message: "" },
+    balanceAmount: {
+      message: "",
+      onlyDigits: true,
+      mxLen: 7,
+    },
+    paidAmount: {
+      message: "",
+      onlyDigits: true,
+      mxLen: 7,
+    },
+    // modeOfPayment: { message: "" },
   };
 
-  let [showInList, setShowInList] = useState(getShowInList(customerSchema));
-  // let [emptyCustomer, setEmptyProduct] = useState({
-  //   ...getEmptyObject(customerSchema),
-  //   status: "active",     
-  //   role: "",            
-  // });
-  let [emptyCustomer, setEmptyCustomer] = useState({
-    ...getEmptyObject(customerSchema),
-    status: "active",
-    // role: "",
+  let [showInList, setShowInList] = useState(getShowInList(paymentSchema));
+  let [emptyPayment, setEmptyPayment] = useState({
+    ...getEmptyObject(paymentSchema),
     roleId: "68691372fa624c1dff2e06be",
     name: "",
-    emailId: "",
-    mobileNumber: "",
-    address: "",
-    daily_qty: "",
-    area: "",
-    start_date: "",
-    finalPrice: "",
-    // info: "",
-    category: "",
-    categoryId: "",
-    // customerImage: ""
+    totalDelivered: 0,
+    totalMonthlyAmount: 0,
+    paidAmount: 0,
+    balanceAmount: 0,
   });
-  
-  
+
   useEffect(() => {
     getData();
-  }, []);
+  }, [selectedMonth, selectedYear]);
+
   async function getData() {
     setFlagLoad(true);
     try {
-      // let response = await axios(import.meta.env.VITE_API_URL + "/users");
-      let response = await axios(import.meta.env.VITE_API_URL + "/customers");
+      const [paymentRes, userRes, summaryRes] = await Promise.all([
+        axios(import.meta.env.VITE_API_URL + "/payments"),
+        axios(import.meta.env.VITE_API_URL + "/users"),
+        getMonthlySummary(), // << Use your existing monthly summary function
+      ]);
 
-let allUsers = await response.data;
-// let pList = allUsers.filter((u) => u.role === "user"); //added by rutuja
-const userRoleId = "68691372fa624c1dff2e06be";
-let pList = allUsers.filter((u) => u.roleId === userRoleId);
-      response = await axios(import.meta.env.VITE_API_URL + "/categories");
-      let cList = await response.data;
-      // Arrange customers is sorted order as per updateDate
-      pList = pList.sort(
-        (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
-      );
-      // In the customerList, add a parameter - category
-      pList.forEach((customer) => {
-        // get category (string) from categoryId
-        for (let i = 0; i < cList.length; i++) {
-          if (customer.categoryId == cList[i]._id) {
-            customer.category = cList[i].name;
-            break;
+      const paymentListRaw = paymentRes.data;
+      const userList = userRes.data;
+      const monthlySummary = summaryRes; // already grouped by userId + month
+      setMonthlySummary(summaryRes);
+
+      const mergedList = userList
+        .filter((user) => user.roleId === "68691372fa624c1dff2e06be")
+        .map((user) => {
+          const startDate = new Date(user.start_date);
+          const startMonth = (startDate.getMonth() + 1)
+            .toString()
+            .padStart(2, "0");
+          const startYear = startDate.getFullYear().toString();
+
+          const selectedYearNum = parseInt(selectedYear);
+          const selectedMonthNum = parseInt(selectedMonth);
+          const startYearNum = parseInt(startYear);
+          const startMonthNum = parseInt(startMonth);
+
+          if (
+            startYearNum > selectedYearNum ||
+            (startYearNum === selectedYearNum &&
+              startMonthNum > selectedMonthNum)
+          ) {
+            return null;
           }
-        } //for
-      });
-      setCustomerList(pList);
-      setFilteredCustomerList(pList);
-      setCategoryList(cList);
+
+          // Match summary based on userId and month
+          const monthKey = `${selectedYear}-${selectedMonth}`; // e.g., "2025-07"
+          const matchingSummary = monthlySummary.find(
+            (s) => s.userId === user._id && s.month === monthKey
+          );
+
+          const matchingPayment = paymentListRaw.find((payment) => {
+            const date = new Date(payment.date || payment.updateDate);
+            const month = (date.getMonth() + 1).toString().padStart(2, "0");
+            const year = date.getFullYear().toString();
+            return (
+              payment.userId === user._id &&
+              month === selectedMonth &&
+              year === selectedYear
+            );
+          });
+
+          return {
+            _id: user._id,
+            userId: user._id,
+            name: user.name,
+            totalDelivered: matchingSummary?.totalDelivered ?? 0,
+            totalMonthlyAmount: matchingSummary?.totalMonthlyAmount ?? 0,
+            balanceAmount:
+              matchingPayment?.balanceAmount ??
+              matchingSummary?.totalMonthlyAmount ??
+              0,
+            paidAmount: matchingPayment?.paidAmount ?? 0,
+            // payment_status: matchingPayment?.payment_status ?? "",
+            date: matchingPayment?.date ?? "",
+          };
+        })
+        .filter(Boolean);
+
+      mergedList.sort(
+        (a, b) => new Date(b.updateDate || 0) - new Date(a.updateDate || 0)
+      );
+
+      setPaymentList(mergedList);
+      setFilteredPaymentList(mergedList);
     } catch (error) {
-      showMessage("Something went wrong, refresh the page");
+      console.error(error);
+      showMessage("Something went wrong while fetching data.");
     }
     setFlagLoad(false);
   }
-  async function handleFormSubmit(customer) {
+
+  async function handleFormSubmit(payment) {
     let message;
-    // now remove relational data
-    let customerForBackEnd = { ...customer };
-    for (let key in customerForBackEnd) {
-      customerSchema.forEach((e, index) => {
+    let paymentForBackEnd = { ...payment };
+    for (let key in paymentForBackEnd) {
+      paymentSchema.forEach((e, index) => {
         if (key == e.attribute && e.relationalData) {
-          delete customerForBackEnd[key];
+          delete paymentForBackEnd[key];
         }
       });
     }
     if (action == "add") {
-      // customer = await addCustomerToBackend(customer);
+      // payment = await addPaymentToBackend(payment);
       setFlagLoad(true);
       try {
         // let response = await axios.post(
         //   import.meta.env.VITE_API_URL + "/users",
-        //   customerForBackEnd,
+        //   paymentForBackEnd,
         //   { headers: { "Content-type": "multipart/form-data" } }
         // );
         let response = await axios.post(
-          import.meta.env.VITE_API_URL + "/customers",
-          customerForBackEnd,
-          { headers: { "Content-type": "multipart/form-data" } }
+          import.meta.env.VITE_API_URL + "/payments",
+          paymentForBackEnd,
+          // { headers: { "Content-type": "multipart/form-data" } }
         );
-        let addedCustomer = await response.data; //returned  with id
-        // This addedCustomer has id, addDate, updateDate, but the relational data is lost
-        // The original customer has got relational data.
-        for (let key in customer) {
-          customerSchema.forEach((e, index) => {
+        let addedPayment = await response.data; //returned  with id
+
+        for (let key in payment) {
+          paymentSchema.forEach((e, index) => {
             if (key == e.attribute && e.relationalData) {
-              addedCustomer[key] = customer[key];
+              addedPayment[key] = payment[key];
             }
           });
         }
-        message = "Customer added successfully";
-        // update the customer list now.
-        let prList = [...customerList];
-        prList.push(addedCustomer);
+        message = "Payment added successfully";
+        let prList = [...paymentList];
+        prList.push(addedPayment);
         prList = prList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        setCustomerList(prList);
-        let fprList = [...filteredCustomerList];
-        fprList.push(addedCustomer);
+        setPaymentList(prList);
+        let fprList = [...filteredPaymentList];
+        fprList.push(addedPayment);
         fprList = fprList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        setFilteredCustomerList(fprList);
-        // update the list in sorted order of updateDate
+        setFilteredPaymentList(fprList);
         showMessage(message);
         setAction("list");
       } catch (error) {
-        console.log(error);
+        console.log(error); 
         showMessage("Something went wrong, refresh the page");
+        setFlagLoad(false); 
       }
+      
       setFlagLoad(false);
     } //...add
     else if (action == "update") {
-      customer._id = userToBeEdited._id; // The form does not have id field
+      payment._id = userToBeEdited._id; // The form does not have id field
       setFlagLoad(true);
       try {
         // let response = await axios.put(
         //   import.meta.env.VITE_API_URL + "/users",
-        //   customerForBackEnd,
+        //   paymentForBackEnd,
         //   { headers: { "Content-type": "multipart/form-data" } }
         // );
         let response = await axios.put(
-          import.meta.env.VITE_API_URL + "/customers",
-          customerForBackEnd,
-          { headers: { "Content-type": "multipart/form-data" } }
+          import.meta.env.VITE_API_URL + "/payments",
+          paymentForBackEnd,
+          // { headers: { "Content-type": "multipart/form-data" } }
         );
-        customer = await response.data;
-        console.log("customer");
-        console.log(customer);
-        message = "Customer Updated successfully";
-        // update the customer list now.
-        let prList = customerList.map((e, index) => {
-          if (e._id == customer._id) return customer;
+        payment = await response.data;
+        console.log("payment");
+        console.log(payment);
+        message = "Payment Updated successfully";
+        // update the payment list now.
+        let prList = paymentList.map((e, index) => {
+          if (e._id == payment._id) return payment;
           return e;
         });
         prList = prList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        let fprList = filteredCustomerList.map((e, index) => {
-          if (e._id == customer._id) return customer;
+        let fprList = filteredPaymentList.map((e, index) => {
+          if (e._id == payment._id) return payment;
           return e;
         });
         fprList = fprList.sort(
           (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
         );
-        setCustomerList(prList);
-        setFilteredCustomerList(fprList);
+        setPaymentList(prList);
+        setFilteredPaymentList(fprList);
         showMessage(message);
         setAction("list");
       } catch (error) {
+        console.log(error); 
         showMessage("Something went wrong, refresh the page");
+        setFlagLoad(false);
       }
+      
     } //else ...(update)
     setFlagLoad(false);
   }
@@ -284,16 +290,16 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
   function handleAddEntityClick() {
     setAction("add");
   }
-  function handleEditButtonClick(customer) {
+  function handleEditButtonClick(payment) {
     // setAction("update");
-    // setUserToBeEdited(customer);
-    let safeCustomer = {
-      ...emptyCustomer,
-      ...customer,
-      info: customer.info || "",
+    // setUserToBeEdited(payment);
+    let safePayment = {
+      ...emptyPayment,
+      ...payment,
+      info: payment.info || "",
     };
     setAction("update");
-    setUserToBeEdited(safeCustomer);
+    setUserToBeEdited(safePayment);
   }
   function showMessage(message) {
     setMessage(message);
@@ -301,7 +307,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       setMessage("");
     }, 3000);
   }
-  function handleDeleteButtonClick(ans, customer) {
+  function handleDeleteButtonClick(ans, payment) {
     if (ans == "No") {
       // delete operation cancelled
       showMessage("Delete operation cancelled");
@@ -309,26 +315,26 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
     }
     if (ans == "Yes") {
       // delete operation allowed
-      performDeleteOperation(customer);
+      performDeleteOperation(payment);
     }
   }
-  async function performDeleteOperation(customer) {
+  async function performDeleteOperation(payment) {
     setFlagLoad(true);
     try {
       // let response = await axios.delete(
-      //   import.meta.env.VITE_API_URL + "/users/" + customer._id
+      //   import.meta.env.VITE_API_URL + "/users/" + payment._id
       // );
       let response = await axios.delete(
-        import.meta.env.VITE_API_URL + "/customers/" + customer._id
+        import.meta.env.VITE_API_URL + "/payments/" + payment._id
       );
       let r = await response.data;
-      message = `Customer - ${customer.name} deleted successfully.`;
-      //update the customer list now.
-      let prList = customerList.filter((e, index) => e._id != customer._id);
-      setCustomerList(prList);
+      message = `Payment - ${payment.name} deleted successfully.`;
+      //update the payment list now.
+      let prList = paymentList.filter((e, index) => e._id != payment._id);
+      setPaymentList(prList);
 
-      let fprList = customerList.filter((e, index) => e._id != customer._id);
-      setFilteredCustomerList(fprList);
+      let fprList = paymentList.filter((e, index) => e._id != payment._id);
+      setFilteredPaymentList(fprList);
       showMessage(message);
     } catch (error) {
       console.log(error);
@@ -374,7 +380,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       // different field
       d = false;
     }
-    let list = [...filteredCustomerList];
+    let list = [...filteredPaymentList];
     setDirection(d);
     if (d == false) {
       //in ascending order
@@ -399,7 +405,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         return 0;
       });
     }
-    setFilteredCustomerList(list);
+    setFilteredPaymentList(list);
     setSortedField(field);
   }
   function handleSrNoClick() {
@@ -411,7 +417,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       d = false;
     }
 
-    let list = [...filteredCustomerList];
+    let list = [...filteredPaymentList];
     setDirection(!direction);
     if (d == false) {
       //in ascending order
@@ -437,7 +443,7 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       });
     }
     // setSelectedList(list);
-    setFilteredCustomerList(list);
+    setFilteredPaymentList(list);
     setSortedField("updateDate");
   }
   function handleFormTextChangeValidations(message, index) {
@@ -451,12 +457,12 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
   function performSearchOperation(searchText) {
     let query = searchText.trim();
     if (query.length == 0) {
-      setFilteredCustomerList(customerList);
+      setFilteredPaymentList(paymentList);
       return;
     }
-    let searchedCustomers = [];
-    searchedCustomers = filterByShowInListAttributes(query);
-    setFilteredCustomerList(searchedCustomers);
+    let searchedPayments = [];
+    searchedPayments = filterByShowInListAttributes(query);
+    setFilteredPaymentList(searchedPayments);
   }
   function filterByName(query) {
     let fList = [];
@@ -469,17 +475,17 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
   }
   function filterByShowInListAttributes(query) {
     let fList = [];
-    for (let i = 0; i < customerList.length; i++) {
+    for (let i = 0; i < paymentList.length; i++) {
       for (let j = 0; j < showInList.length; j++) {
         if (showInList[j].show) {
           let parameterName = showInList[j].attribute;
           if (
-            customerList[i][parameterName] &&
-            customerList[i][parameterName]
+            paymentList[i][parameterName] &&
+            paymentList[i][parameterName]
               .toLowerCase()
               .includes(query.toLowerCase())
           ) {
-            fList.push(customerList[i]);
+            fList.push(paymentList[i]);
             break;
           }
         }
@@ -510,13 +516,13 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       // const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
       setSheetData(jsonData);
-      let result = analyseImportExcelSheet(jsonData, customerList);
+      let result = analyseImportExcelSheet(jsonData, paymentList);
       if (result.message) {
         showMessage(result.message);
       } else {
         showImportAnalysis(result);
       }
-      // analyseSheetData(jsonData, customerList);
+      // analyseSheetData(jsonData, paymentList);
     };
     // reader.readAsBinaryString(file);
     reader.readAsArrayBuffer(file);
@@ -538,40 +544,28 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
     let result;
     try {
       if (recordsToBeAdded.length > 0) {
-        // result = await recordsAddBulk(
-        //   recordsToBeAdded,
-        //   "users",
-        //   customerList,
-        //   import.meta.env.VITE_API_URL
-        // );
         result = await recordsAddBulk(
           recordsToBeAdded,
-          "customers",
-          customerList,
+          "payments",
+          paymentList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setCustomerList(result.updatedList);
-          setFilteredCustomerList(result.updatedList);
+          setPaymentList(result.updatedList);
+          setFilteredPaymentList(result.updatedList);
         }
         showMessage(result.message);
       }
       if (recordsToBeUpdated.length > 0) {
-        // result = await recordsUpdateBulk(
-        //   recordsToBeUpdated,
-        //   "users",
-        //   customerList,
-        //   import.meta.env.VITE_API_URL
-        // );
         result = await recordsUpdateBulk(
           recordsToBeUpdated,
-          "customers",
-          customerList,
+          "payments",
+          paymentList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setCustomerList(result.updatedList);
-          setFilteredCustomerList(result.updatedList);
+          setPaymentList(result.updatedList);
+          setFilteredPaymentList(result.updatedList);
         }
         showMessage(result.message);
       } //if
@@ -598,8 +592,8 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         message={message}
         selectedEntity={selectedEntity}
         flagToggleButton={flagToggleButton}
-        filteredList={filteredCustomerList}
-        mainList={customerList}
+        filteredList={filteredPaymentList}
+        mainList={paymentList}
         showInList={showInList}
         onListClick={handleListClick}
         onAddEntityClick={handleAddEntityClick}
@@ -608,19 +602,56 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         onClearSelectedFile={handleClearSelectedFile}
       />
 
-      {filteredCustomerList.length == 0 && customerList.length != 0 && (
+      <div className="row px-3 my-2">
+        <div className="col-md-3">
+          <label className="form-label">Select Month</label>
+          <select
+            className="form-select"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
+            {Array.from({ length: 12 }, (_, i) => {
+              const month = String(i + 1).padStart(2, "0");
+              return (
+                <option key={month} value={month}>
+                  {new Date(0, i).toLocaleString("default", { month: "long" })}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+        <div className="col-md-3">
+          <label className="form-label">Select Year</label>
+          <select
+            className="form-select"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
+            {Array.from({ length: 5 }, (_, i) => {
+              const year = today.getFullYear() - 2 + i;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      </div>
+
+      {filteredPaymentList.length == 0 && paymentList.length != 0 && (
         <div className="text-center">Nothing to show</div>
       )}
-      {customerList.length == 0 && (
+      {paymentList.length == 0 && (
         <div className="text-center">List is empty</div>
       )}
-      {action == "list" && filteredCustomerList.length != 0 && (
+      {action == "list" && filteredPaymentList.length != 0 && (
         <CheckBoxHeaders
           showInList={showInList}
           onListCheckBoxClick={handleListCheckBoxClick}
         />
       )}
-      {action == "list" && filteredCustomerList.length != 0 && (
+      {action == "list" && filteredPaymentList.length != 0 && (
         <div className="row   my-2 mx-auto  p-1">
           <div className="col-1">
             <a
@@ -649,10 +680,10 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
       )}
       {(action == "add" || action == "update") && (
         <div className="row">
-          <CustomerForm
-            customerSchema={customerSchema}
-            customerValidations={customerValidations}
-            emptyCustomer={emptyCustomer}
+          <PaymentForm
+            paymentSchema={paymentSchema}
+            paymentValidations={paymentValidations}
+            emptyPayment={emptyPayment}
             categoryList={categoryList}
             selectedEntity={selectedEntity}
             userToBeEdited={userToBeEdited}
@@ -665,15 +696,15 @@ let pList = allUsers.filter((u) => u.roleId === userRoleId);
         </div>
       )}
       {action == "list" &&
-        filteredCustomerList.length != 0 &&
-        filteredCustomerList.map((e, index) => (
+        filteredPaymentList.length != 0 &&
+        filteredPaymentList.map((e, index) => (
           <Entity
             entity={e}
             key={index + 1}
             index={index}
             sortedField={sortedField}
             direction={direction}
-            listSize={filteredCustomerList.length}
+            listSize={filteredPaymentList.length}
             selectedEntity={selectedEntity}
             showInList={showInList}
             VITE_API_URL={import.meta.env.VITE_API_URL}

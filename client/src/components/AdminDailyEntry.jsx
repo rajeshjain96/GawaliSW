@@ -748,55 +748,57 @@ async function handleDeliverButtonClick() {
         <div className="text-center">List is empty</div>
       )}
        {action === "list" && (
-  <div className="text-center my-2">
-    <label className="fw-bold me-2">Select Date:</label>
+  <div className="text-center my-3">
+    <label className="fw-bold me-3">Select Date:</label>
 
-    <div className="d-inline-block mx-2">
-      <input
-        type="radio"
-        name="dateOption"
-        value="Today"
-        checked={selectedDateOption === "Today"}
-        onChange={(e) => {
-          setSelectedDateOption(e.target.value);
-          fetchDataForSelectedDate(e.target.value);
+    <div className="btn-group" role="group">
+      <button
+        type="button"
+        className={` btn ${
+          selectedDateOption === "Today" ? "btn-primary" : "btn-outline-primary"
+        }`}
+        onClick={() => {
+          setSelectedDateOption("Today");
+          fetchDataForSelectedDate("Today");
         }}
-      />{" "}
-      Today
-    </div>
-
-    <div className="d-inline-block mx-2">
-      <input
-        type="radio"
-        name="dateOption"
-        value="Yesterday"
-        checked={selectedDateOption === "Yesterday"}
-        onChange={(e) => {
-          setSelectedDateOption(e.target.value);
-          fetchDataForSelectedDate(e.target.value);
+      >
+        Today
+      </button>
+      <button
+        type="button"
+        className={`btn ${
+          selectedDateOption === "Yesterday"
+            ? "btn-primary"
+            : "btn-outline-primary"
+        }`}
+        onClick={() => {
+          setSelectedDateOption("Yesterday");
+          fetchDataForSelectedDate("Yesterday");
         }}
-      />{" "}
-      Yesterday
-    </div>
-
-    <div className="d-inline-block mx-2">
-      <input
-        type="radio"
-        name="dateOption"
-        value="Another Day"
-        checked={selectedDateOption === "Another Day"}
-        onChange={(e) => {
-          setSelectedDateOption(e.target.value);
+      >
+        Yesterday
+      </button>
+      <button
+        type="button"
+        className={`btn ${
+          selectedDateOption === "Another Day"
+            ? "btn-primary"
+            : "btn-outline-primary"
+        }`}
+        onClick={() => {
+          setSelectedDateOption("Another Day");
         }}
-      />{" "}
-      Another Day
+      >
+        Another Day
+      </button>
     </div>
 
     {selectedDateOption === "Another Day" && (
       <input
         type="date"
+        className="form-control d-inline-block mx-2 mt-2"
+        style={{ width: "200px" }}
         value={anotherDate}
-        className="mx-2"
         onChange={(e) => {
           setAnotherDate(e.target.value);
           fetchDataForSelectedDate("Another Day", e.target.value);
@@ -805,6 +807,7 @@ async function handleDeliverButtonClick() {
     )}
   </div>
 )}
+
 
       {action == "list" && filteredEntryList.length != 0 && (
         <CheckBoxHeaders

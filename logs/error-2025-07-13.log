@@ -1,1 +1,2 @@
 13/7/2025, 12:59:59 am — [ERROR] — guest encountered error during POST /areas — AreaService.addArea is not a function
+13/7/2025, 8:17:55 pm — [ERROR] — guest encountered error during POST /users/login — read ECONNRESET

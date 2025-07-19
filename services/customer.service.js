@@ -97,8 +97,3 @@ module.exports = CustomerService = {
   updateCustomer,
   deleteCustomer,
 };
-
-
-
-
-

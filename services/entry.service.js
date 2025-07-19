@@ -1,4 +1,3 @@
-// entry.service.js
 const { app } = require("../init.js");
 const { ObjectId } = require("mongodb");
 
@@ -133,12 +132,10 @@ async function updateEntry(entryId, fieldsToUpdate) {
     
     if (updateOperationResult && updateOperationResult.value) {
         updatedDocument = updateOperationResult.value;
-    } else if (updateOperationResult && updateOperationResult._id) { // Fallback if .value is empty but raw result contains _id (older drivers)
-        // If the entire result object itself is the updated document (common in some older drivers or simple update operations)
+    } else if (updateOperationResult && updateOperationResult._id) {
         updatedDocument = updateOperationResult;
         console.warn('Backend Warning: findOneAndUpdate.value was empty, but raw result contained the updated document (potentially older driver behavior).');
     } else {
-        // If still no document, try a manual re-fetch as a last resort (should not be needed with proper returnDocument option)
         console.warn('Backend Warning: findOneAndUpdate returned no value. Attempting manual re-fetch.');
         updatedDocument = await collection.findOne({ _id: objectIdToQuery });
     }
@@ -180,4 +177,3 @@ module.exports = EntryService = {
   updateEntry,
   deleteEntry,
 };
-

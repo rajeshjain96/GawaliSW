@@ -3,7 +3,6 @@ const router = express.Router();
 const EntryService = require("../services/entry.service");
 const multer = require("multer");
 const { normalizeNewlines } = require("../services/utilities/lib");
-// const upload = multer({ dest: "uploads/" });
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./uploads");
@@ -19,29 +18,26 @@ router.get("/", async (req, res, next) => {
     let list = await EntryService.getAllEntries();
     res.status(200).json(list);
   } catch (error) {
-    next(error); // Send error to middleware
+    next(error); 
   }
 });
 
 router.get("/:id", async (req, res, next) => {
   try {
     let id = req.params.id;
-    // Typo: should be getEntryById, not getAllEntryById
     let obj = await EntryService.getEntryById(id);
     if (!obj) {
       return res.status(404).json({ message: "Entry not found" });
     }
-    res.send(obj); // Send the object if found
-
+    res.send(obj); 
   } catch (error) {
-    next(error); // Send error to middleware
+    next(error); 
   }
 });
 
 router.post("/", upload.any(), async (req, res, next) => {
   try {
     let obj = req.body;
-    // normalize text
     const keys = Object.keys(obj);
     for (let key of keys) {
       if (typeof obj[key] == "string") {
@@ -53,7 +49,7 @@ router.post("/", upload.any(), async (req, res, next) => {
     obj = await EntryService.addEntry(obj);
     res.status(201).json(obj);
   } catch (error) {
-    next(error); // Send error to middleware
+    next(error);  
   }
 });
 
@@ -66,7 +62,7 @@ router.post("/bulk-add", async (req, res, next) => {
   }
 
   try {
-    const Entry = require("../models/entry.model"); // Adjust path if needed
+    const Entry = require("../models/entry.model"); 
     const result = [];
 
     for (const entry of entries) {
@@ -78,24 +74,20 @@ router.post("/bulk-add", async (req, res, next) => {
         }
       }
 
-      // Normalize and add timestamps
       entry.addDate = new Date();
       entry.updateDate = new Date();
 
-      // Ensure date is in a comparable format, assuming 'YYYY-MM-DD' from frontend
       const entryDate = new Date(date).toISOString().split('T')[0];
 
-      const existing = await Entry.findOne({ userId, date: { $regex: `^${entryDate}` } }); // Match date string start
+      const existing = await Entry.findOne({ userId, date: { $regex: `^${entryDate}` } }); 
 
       if (existing) {
-        // Update the existing entry
         existing.delivered_qty = entry.delivered_qty;
         existing.entry_status = entry.entry_status;
         existing.updateDate = new Date();
         await existing.save();
         result.push(existing);
       } else {
-        // Create a new entry
         const newEntry = new Entry(entry);
         await newEntry.save();
         result.push(newEntry);
@@ -109,30 +101,24 @@ router.post("/bulk-add", async (req, res, next) => {
   }
 });
 
-// --- START OF REQUIRED CHANGES FOR Single Entry PUT route ---
-// This new route will handle updates for a specific entry by its ID in the URL
-router.put("/:id", upload.any(), async (req, res, next) => { // Route now accepts an ID parameter
+router.put("/:id", upload.any(), async (req, res, next) => { 
   try {
-    const entryId = req.params.id; // Get the entry's actual _id from the URL
-    const fieldsToUpdate = req.body; // The request body contains the fields to update
-
-    // It's good practice to ensure updateDate is set on the server
+    const entryId = req.params.id; 
+    const fieldsToUpdate = req.body; 
     fieldsToUpdate.updateDate = new Date();
 
-    // Call the updated service method with the ID and the fields to update
     let updatedEntry = await EntryService.updateEntry(entryId, fieldsToUpdate);
 
     if (!updatedEntry) {
       return res.status(404).json({ message: "Entry not found for update." });
     }
 
-    res.status(200).json(updatedEntry); // Send back the actual updated document
+    res.status(200).json(updatedEntry); 
   } catch (error) {
-    console.error("Error updating single entry:", error); // Specific error log
-    next(error); // Send error to middleware
+    console.error("Error updating single entry:", error); 
+    next(error); 
   }
 });
-// --- END OF REQUIRED CHANGES FOR Single Entry PUT route ---
 
 
 router.put("/bulk-update", async (req, res, next) => {
@@ -147,22 +133,18 @@ router.put("/bulk-update", async (req, res, next) => {
     let result = await EntryService.updateManyEntries(entries);
     res.status(201).json(result);
   } catch (error) {
-    next(error); // Send error to middleware
+    next(error); 
   }
 });
 
 router.delete("/:id", async (req, res, next) => {
   try {
     let id = req.params.id;
-    // obj = req.body; // obj is not used here, can be removed if not needed elsewhere
     let obj = await EntryService.deleteEntry(id);
     res.json(obj);
   } catch (error) {
-    next(error); // Send error to middleware
+    next(error); 
   }
 });
 
 module.exports = router;
-
-
-

@@ -330,4 +330,3 @@ export default function PaymentForm(props) {
     </div>
   );
 }
-

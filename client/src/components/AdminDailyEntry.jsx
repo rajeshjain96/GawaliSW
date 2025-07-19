@@ -987,6 +987,3 @@ export default function AdminDailyEntry(props) {
     </>
   );
 }
-
-
-

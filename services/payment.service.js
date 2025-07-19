@@ -19,6 +19,7 @@ async function getPaymentById(id) {
 }
 
 async function addPayment(obj) {
+  console.log("add:", obj);
   const db = app.locals.db;
   const collection = db.collection("payments");
   const keys = Object.keys(obj);
@@ -27,8 +28,14 @@ async function addPayment(obj) {
       obj[key] = normalizeNewlines(obj[key]);
     }
   }
+  obj.totalDelivered = parseFloat(obj.totalDelivered) || 0;
+  obj.totalMonthlyAmount = parseFloat(obj.totalMonthlyAmount) || 0;
+  obj.paidAmount = parseFloat(obj.paidAmount) || 0;
+  obj.balanceAmount = parseFloat(obj.balanceAmount) || 0;
+
   let result = await collection.insertOne(obj);
-  obj._id = result.insertedId;
+  obj._id = result.insertedId; 
+  console.log("Result of 1 addpay:", result);
   return obj;
 }
 
@@ -57,63 +64,53 @@ async function updateManyPayments(payments) {
   });
   const result = await collection.bulkWrite(operations);
   const updatedIds = payments.map((u) => ObjectId.createFromHexString(u._id));
-  const updatedPayments = await collection
+  const updatedPayments = await collection 
     .find({ _id: { $in: updatedIds } })
     .toArray();
-  return updatedPayments;
+  return updatedPayments; 
 }
 
-// async function updatePayment(obj) {
-//   const db = app.locals.db;
-//   const collection = db.collection("payments");
-//   let id = obj._id;
-//   delete obj._id;
-//   let result = await collection.updateOne(
-//     { _id: ObjectId.createFromHexString(id) },
-//     { $set: obj }
-//   );
-//   return result;
-// }
 async function updatePayment(obj) {
+  console.log("update:", obj);
   const db = app.locals.db;
   const collection = db.collection("payments");
-  let id = obj._id;
-  if (!id) throw new Error("Missing _id for updatePayment");
-  delete obj._id;
+  let id = obj._id; 
+
+  obj.totalDelivered = parseFloat(obj.totalDelivered) || 0;
+  obj.totalMonthlyAmount = parseFloat(obj.totalMonthlyAmount) || 0;
+  obj.paidAmount = parseFloat(obj.paidAmount) || 0;
+  obj.balanceAmount = parseFloat(obj.balanceAmount) || 0; 
+  delete obj._id; 
 
   let result = await collection.updateOne(
-    { _id: new ObjectId(id) }, // safer than createFromHexString
+    { _id: ObjectId.createFromHexString(id) },
     { $set: obj }
   );
+  console.log("Result from update :", result);
   return result;
 }
 
-
-
 async function deletePayment(id) {
+  console.log("delete:", id);
   const db = app.locals.db;
   const collection = db.collection("payments");
-  let obj = await collection.deleteOne({
+  let result = await collection.deleteOne({
     _id: ObjectId.createFromHexString(id),
   });
-  return obj;
+  console.log("Result delete:", result);
+  return result;
 }
 
 function normalizeNewlines(text) {
   return text.replace(/\r\n/g, "\n");
 }
 
-module.exports = PaymentService = {
+module.exports = EntryService = {
   getAllPayments,
-  getPaymentById,
+  getPaymentById, 
   addPayment,
   addManyPayments,
   updateManyPayments,
-  updatePayment,
-  deletePayment,
+  updatePayment, 
+  deletePayment, 
 };
-
-
-
-
-

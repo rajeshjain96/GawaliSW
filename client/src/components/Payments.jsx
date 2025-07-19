@@ -5,10 +5,7 @@ import {
   ListHeaders,
   Entity,
 } from "../external/vite-sdk";
-// import AdminProductForm from "./AdminProductForm";
-import PaymentForm from "./PaymentForm";
 import { BeatLoader } from "react-spinners";
-import { getMonthlySummary } from "./MonthlySummary";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import ModalImport from "./ModalImport";
@@ -18,11 +15,12 @@ import {
   analyseImportExcelSheet,
 } from "../external/vite-sdk";
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
+import PaymentForm from "./PaymentForm";
+import { getMonthlySummary } from './MonthlySummary';
 
 export default function Payments(props) {
   let [paymentList, setPaymentList] = useState([]);
   let [filteredPaymentList, setFilteredPaymentList] = useState([]);
-  let [categoryList, setCategoryList] = useState([]);
   let [action, setAction] = useState("list");
   let [userToBeEdited, setUserToBeEdited] = useState("");
   let [flagLoad, setFlagLoad] = useState(false);
@@ -33,10 +31,10 @@ export default function Payments(props) {
   let [direction, setDirection] = useState("");
   let [sheetData, setSheetData] = useState(null);
   let [selectedFile, setSelectedFile] = useState("");
+
   const today = new Date();
-  const currentMonth = (today.getMonth() + 1).toString().padStart(2, "0"); // "01" to "12"
+  const currentMonth = (today.getMonth() + 1).toString().padStart(2, "0");
   const currentYear = today.getFullYear().toString();
-  const [monthlySummary, setMonthlySummary] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
@@ -52,116 +50,104 @@ export default function Payments(props) {
     { attribute: "name", type: "normal" },
     { attribute: "totalDelivered", type: "normal" },
     { attribute: "totalMonthlyAmount", type: "normal" },
-    { attribute: "balanceAmount", type: "normal" },
     { attribute: "paidAmount", type: "normal" },
-    // { attribute: "modeOfPayment", type: "normal" },
+    { attribute: "balanceAmount", type: "normal" },
+    { attribute: "payment_mode", type: "normal" }, // Added payment_mode to schema
   ];
+
   let paymentValidations = {
     name: { message: "", mxLen: 200, mnLen: 4, onlyDigits: false },
-    totalDelivered: {
-      message: "",
-      onlyDigits: true,
-      mxLen: 5, // assuming no one delivers >99999 litres
-    },
-    totalMonthlyAmount: {
-      message: "",
-      onlyDigits: true,
-      mxLen: 7, // assuming no bills >10L
-    },
-    balanceAmount: {
-      message: "",
-      onlyDigits: true,
-      mxLen: 7,
-    },
-    paidAmount: {
-      message: "",
-      onlyDigits: true,
-      mxLen: 7,
-    },
-    // modeOfPayment: { message: "" },
+    totalDelivered: { message: "", onlyDigits: true },
+    totalMonthlyAmount: { message: "", onlyDigits: true },
+    paidAmount: { message: "", onlyDigits: true },
+    balanceAmount: { message: "", onlyDigits: true },
+    payment_mode: { message: "" }, // Added validation for payment_mode
   };
 
   let [showInList, setShowInList] = useState(getShowInList(paymentSchema));
+
   let [emptyPayment, setEmptyPayment] = useState({
     ...getEmptyObject(paymentSchema),
     roleId: "68691372fa624c1dff2e06be",
     name: "",
     totalDelivered: 0,
     totalMonthlyAmount: 0,
-    paidAmount: 0,
+    paidAmount: null,
     balanceAmount: 0,
+    payment_mode: "", // Default payment mode to Cash
   });
 
   useEffect(() => {
-    getData();
+    fetchAndProcessData();
   }, [selectedMonth, selectedYear]);
 
-  async function getData() {
+  async function fetchAndProcessData() {
     setFlagLoad(true);
     try {
-      const [paymentRes, userRes, summaryRes] = await Promise.all([
-        axios(import.meta.env.VITE_API_URL + "/payments"),
+      const [userRes, paymentRes] = await Promise.all([
         axios(import.meta.env.VITE_API_URL + "/users"),
-        getMonthlySummary(), // << Use your existing monthly summary function
+        axios(import.meta.env.VITE_API_URL + "/payments"),
       ]);
-
-      const paymentListRaw = paymentRes.data;
       const userList = userRes.data;
-      const monthlySummary = summaryRes; // already grouped by userId + month
-      setMonthlySummary(summaryRes);
+      const paymentListRaw = paymentRes.data;
+
+      const allMonthlySummaries = await getMonthlySummary();
+
+      const currentMonthYear = `${selectedYear}-${selectedMonth}`;
 
       const mergedList = userList
         .filter((user) => user.roleId === "68691372fa624c1dff2e06be")
         .map((user) => {
           const startDate = new Date(user.start_date);
-          const startMonth = (startDate.getMonth() + 1)
-            .toString()
-            .padStart(2, "0");
-          const startYear = startDate.getFullYear().toString();
-
-          const selectedYearNum = parseInt(selectedYear);
-          const selectedMonthNum = parseInt(selectedMonth);
-          const startYearNum = parseInt(startYear);
-          const startMonthNum = parseInt(startMonth);
+          const startYearNum = startDate.getFullYear();
+          const startMonthNum = startDate.getMonth();
 
           if (
-            startYearNum > selectedYearNum ||
-            (startYearNum === selectedYearNum &&
-              startMonthNum > selectedMonthNum)
+            startYearNum > parseInt(selectedYear) ||
+            (startYearNum === parseInt(selectedYear) &&
+              startMonthNum > parseInt(selectedMonth) - 1)
           ) {
             return null;
           }
 
-          // Match summary based on userId and month
-          const monthKey = `${selectedYear}-${selectedMonth}`; // e.g., "2025-07"
-          const matchingSummary = monthlySummary.find(
-            (s) => s.userId === user._id && s.month === monthKey
+          const userSummaryForMonth = allMonthlySummaries.find(
+            (summary) => summary.userId === user._id && summary.month === currentMonthYear
           );
 
-          const matchingPayment = paymentListRaw.find((payment) => {
-            const date = new Date(payment.date || payment.updateDate);
-            const month = (date.getMonth() + 1).toString().padStart(2, "0");
-            const year = date.getFullYear().toString();
-            return (
-              payment.userId === user._id &&
-              month === selectedMonth &&
-              year === selectedYear
-            );
-          });
+          const monthlyBillRecord = paymentListRaw.find(
+            (p) =>
+              p.userId === user._id &&
+              p.date?.split("T")[0].substring(0, 7) === currentMonthYear &&
+              p.payment_status === "MonthlyBill"
+          );
+
+          let totalDelivered = userSummaryForMonth?.totalDelivered ?? 0;
+          let calculatedTotalMonthlyAmount = userSummaryForMonth?.totalMonthlyAmount ?? 0;
+          
+          let paidAmount = monthlyBillRecord?.paidAmount ?? null;
+          let balanceAmount;
+
+          if (paidAmount !== null) {
+              balanceAmount = calculatedTotalMonthlyAmount - paidAmount;
+          } else {
+              balanceAmount = calculatedTotalMonthlyAmount;
+          }
+
+          let effectiveUpdateDate = monthlyBillRecord?.updateDate || user.updateDate || new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toISOString();
+          let paymentMode = monthlyBillRecord?.payment_mode ?? ""; // Get payment_mode or default to Cash
+
 
           return {
             _id: user._id,
             userId: user._id,
             name: user.name,
-            totalDelivered: matchingSummary?.totalDelivered ?? 0,
-            totalMonthlyAmount: matchingSummary?.totalMonthlyAmount ?? 0,
-            balanceAmount:
-              matchingPayment?.balanceAmount ??
-              matchingSummary?.totalMonthlyAmount ??
-              0,
-            paidAmount: matchingPayment?.paidAmount ?? 0,
-            // payment_status: matchingPayment?.payment_status ?? "",
-            date: matchingPayment?.date ?? "",
+            totalDelivered: totalDelivered,
+            totalMonthlyAmount: calculatedTotalMonthlyAmount,
+            paidAmount: paidAmount,
+            balanceAmount: balanceAmount,
+            updateDate: effectiveUpdateDate,
+            paymentId: monthlyBillRecord?._id || null,
+            payment_mode: paymentMode, // Add payment_mode to the merged record
           };
         })
         .filter(Boolean);
@@ -173,7 +159,7 @@ export default function Payments(props) {
       setPaymentList(mergedList);
       setFilteredPaymentList(mergedList);
     } catch (error) {
-      console.error(error);
+      console.error("Error in fetchAndProcessData:", error);
       showMessage("Something went wrong while fetching data.");
     }
     setFlagLoad(false);
@@ -182,105 +168,56 @@ export default function Payments(props) {
   async function handleFormSubmit(payment) {
     let message;
     let paymentForBackEnd = { ...payment };
-    for (let key in paymentForBackEnd) {
-      paymentSchema.forEach((e, index) => {
-        if (key == e.attribute && e.relationalData) {
-          delete paymentForBackEnd[key];
-        }
-      });
-    }
-    if (action == "add") {
-      // payment = await addPaymentToBackend(payment);
-      setFlagLoad(true);
-      try {
-        // let response = await axios.post(
-        //   import.meta.env.VITE_API_URL + "/users",
-        //   paymentForBackEnd,
-        //   { headers: { "Content-type": "multipart/form-data" } }
-        // );
-        let response = await axios.post(
-          import.meta.env.VITE_API_URL + "/payments",
-          paymentForBackEnd,
-          // { headers: { "Content-type": "multipart/form-data" } }
-        );
-        let addedPayment = await response.data; //returned  with id
 
-        for (let key in payment) {
-          paymentSchema.forEach((e, index) => {
-            if (key == e.attribute && e.relationalData) {
-              addedPayment[key] = payment[key];
-            }
-          });
-        }
-        message = "Payment added successfully";
-        let prList = [...paymentList];
-        prList.push(addedPayment);
-        prList = prList.sort(
-          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
-        );
-        setPaymentList(prList);
-        let fprList = [...filteredPaymentList];
-        fprList.push(addedPayment);
-        fprList = fprList.sort(
-          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
-        );
-        setFilteredPaymentList(fprList);
-        showMessage(message);
-        setAction("list");
-      } catch (error) {
-        console.log(error); 
-        showMessage("Something went wrong, refresh the page");
-        setFlagLoad(false); 
-      }
+    const dateForMonthlyEntry = `${selectedYear}-${selectedMonth}-01T00:00:00.000Z`;
+
+    const monthlyPaymentPayload = {
+      userId: paymentForBackEnd.userId,
+      name: paymentForBackEnd.name,
+      date: dateForMonthlyEntry,
       
-      setFlagLoad(false);
-    } //...add
-    else if (action == "update") {
-      payment._id = userToBeEdited._id; // The form does not have id field
-      setFlagLoad(true);
-      try {
-        // let response = await axios.put(
-        //   import.meta.env.VITE_API_URL + "/users",
-        //   paymentForBackEnd,
-        //   { headers: { "Content-type": "multipart/form-data" } }
-        // );
-        let response = await axios.put(
+      paidAmount: paymentForBackEnd.paidAmount === null ? 0 : paymentForBackEnd.paidAmount,
+      balanceAmount: paymentForBackEnd.balanceAmount,
+      totalDelivered: paymentForBackEnd.totalDelivered,
+      totalMonthlyAmount: paymentForBackEnd.totalMonthlyAmount,
+      payment_mode: paymentForBackEnd.payment_mode, // Add payment_mode to the payload
+    };
+
+    if (!paymentForBackEnd.paymentId) {
+        monthlyPaymentPayload.payment_status = "MonthlyBill";
+    }
+
+    setFlagLoad(true);
+    try {
+      let response;
+      if (paymentForBackEnd.paymentId) {
+        response = await axios.put(
+          `${import.meta.env.VITE_API_URL}/payments/${paymentForBackEnd.paymentId}`,
+          monthlyPaymentPayload,
+          { headers: { "Content-type": "application/json" } }
+        );
+        message = "Monthly payment record updated successfully.";
+      } else {
+        response = await axios.post(
           import.meta.env.VITE_API_URL + "/payments",
-          paymentForBackEnd,
-          // { headers: { "Content-type": "multipart/form-data" } }
+          monthlyPaymentPayload,
+          { headers: { "Content-type": "application/json" } }
         );
-        payment = await response.data;
-        console.log("payment");
-        console.log(payment);
-        message = "Payment Updated successfully";
-        // update the payment list now.
-        let prList = paymentList.map((e, index) => {
-          if (e._id == payment._id) return payment;
-          return e;
-        });
-        prList = prList.sort(
-          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
-        );
-        let fprList = filteredPaymentList.map((e, index) => {
-          if (e._id == payment._id) return payment;
-          return e;
-        });
-        fprList = fprList.sort(
-          (a, b) => new Date(b.updateDate) - new Date(a.updateDate)
-        );
-        setPaymentList(prList);
-        setFilteredPaymentList(fprList);
-        showMessage(message);
-        setAction("list");
-      } catch (error) {
-        console.log(error); 
-        showMessage("Something went wrong, refresh the page");
-        setFlagLoad(false);
+        message = "Added Payemnt Successfully";
       }
-      
-    } //else ...(update)
-    setFlagLoad(false);
+
+      showMessage(message);
+      setAction("list");
+      await fetchAndProcessData();
+
+    } catch (error) {
+      console.error("Form submission error:", error);
+      showMessage("Something went wrong with form submission, refresh the page");
+    } finally {
+      setFlagLoad(false);
+    }
   }
+
   function handleFormCloseClick() {
     props.onFormCloseClick();
   }
@@ -291,13 +228,12 @@ export default function Payments(props) {
     setAction("add");
   }
   function handleEditButtonClick(payment) {
-    // setAction("update");
-    // setUserToBeEdited(payment);
     let safePayment = {
       ...emptyPayment,
       ...payment,
       info: payment.info || "",
     };
+    safePayment.paidAmount = safePayment.paidAmount === 0 ? null : safePayment.paidAmount;
     setAction("update");
     setUserToBeEdited(safePayment);
   }
@@ -307,63 +243,60 @@ export default function Payments(props) {
       setMessage("");
     }, 3000);
   }
+
   function handleDeleteButtonClick(ans, payment) {
-    if (ans == "No") {
-      // delete operation cancelled
+    if (ans === "No") {
       showMessage("Delete operation cancelled");
       return;
     }
-    if (ans == "Yes") {
-      // delete operation allowed
+    if (ans === "Yes") {
       performDeleteOperation(payment);
     }
   }
+
   async function performDeleteOperation(payment) {
     setFlagLoad(true);
     try {
-      // let response = await axios.delete(
-      //   import.meta.env.VITE_API_URL + "/users/" + payment._id
-      // );
-      let response = await axios.delete(
-        import.meta.env.VITE_API_URL + "/payments/" + payment._id
-      );
-      let r = await response.data;
-      message = `Payment - ${payment.name} deleted successfully.`;
-      //update the payment list now.
-      let prList = paymentList.filter((e, index) => e._id != payment._id);
-      setPaymentList(prList);
+      if (payment.paymentId) {
+          await axios.delete(
+              `${import.meta.env.VITE_API_URL}/payments/${payment.paymentId}`
+          );
+          showMessage(`Monthly payment record for ${payment.name} deleted successfully.`);
+      } else {
+          showMessage(`No specific monthly payment record found for ${payment.name} to delete.`);
+      }
 
-      let fprList = paymentList.filter((e, index) => e._id != payment._id);
-      setFilteredPaymentList(fprList);
-      showMessage(message);
+      await fetchAndProcessData();
+
     } catch (error) {
-      console.log(error);
-      showMessage("Something went wrong, refresh the page");
+      console.error("Delete operation failed:", error);
+      showMessage("Something went wrong during deletion, refresh the page");
+    } finally {
+      setFlagLoad(false);
     }
-    setFlagLoad(false);
   }
+
   function handleListCheckBoxClick(checked, selectedIndex) {
-    // Minimum 1 field should be shown
     let cnt = 0;
-    showInList.forEach((e, index) => {
+    showInList.forEach((e) => {
       if (e.show) {
         cnt++;
       }
     });
-    if (cnt == 1 && !checked) {
+    if (cnt === 1 && !checked) {
       showMessage("Minimum 1 field should be selected.");
       return;
     }
-    if (cnt == 5 && checked) {
+    if (cnt === 5 && checked) {
       showMessage("Maximum 5 fields can be selected.");
       return;
     }
     let att = [...showInList];
     let a = att.map((e, index) => {
       let p = { ...e };
-      if (index == selectedIndex && checked) {
+      if (index === selectedIndex && checked) {
         p.show = true;
-      } else if (index == selectedIndex && !checked) {
+      } else if (index === selectedIndex && !checked) {
         p.show = false;
       }
       return p;
@@ -374,42 +307,49 @@ export default function Payments(props) {
     let field = showInList[index].attribute;
     let d = false;
     if (field === sortedField) {
-      // same button clicked twice
       d = !direction;
     } else {
-      // different field
       d = false;
     }
     let list = [...filteredPaymentList];
     setDirection(d);
-    if (d == false) {
-      //in ascending order
+    if (d === false) {
       list.sort((a, b) => {
-        if (a[field] > b[field]) {
+        const valA = a[field] !== null && a[field] !== undefined ? a[field] : '';
+        const valB = b[field] !== null && b[field] !== undefined ? b[field] : '';
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          return valA.localeCompare(valB);
+        }
+        if (valA > valB) {
           return 1;
         }
-        if (a[field] < b[field]) {
+        if (valA < valB) {
           return -1;
         }
         return 0;
       });
     } else {
-      //in descending order
       list.sort((a, b) => {
-        if (a[field] < b[field]) {
+        const valA = a[field] !== null && a[field] !== undefined ? a[field] : '';
+        const valB = b[field] !== null && b[field] !== undefined ? b[field] : '';
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          return valB.localeCompare(valA);
+        }
+        if (valA < valB) {
           return 1;
         }
-        if (a[field] > b[field]) {
+        if (valA > valB) {
           return -1;
         }
         return 0;
       });
     }
     setFilteredPaymentList(list);
-    setSortedField(field);
+    setSortedField("updateDate");
   }
   function handleSrNoClick() {
-    // let field = selectedEntity.attributes[index].id;
     let d = false;
     if (sortedField === "updateDate") {
       d = !direction;
@@ -419,8 +359,7 @@ export default function Payments(props) {
 
     let list = [...filteredPaymentList];
     setDirection(!direction);
-    if (d == false) {
-      //in ascending order
+    if (d === false) {
       list.sort((a, b) => {
         if (new Date(a["updateDate"]) > new Date(b["updateDate"])) {
           return 1;
@@ -431,7 +370,6 @@ export default function Payments(props) {
         return 0;
       });
     } else {
-      //in descending order
       list.sort((a, b) => {
         if (new Date(a["updateDate"]) < new Date(b["updateDate"])) {
           return 1;
@@ -442,13 +380,10 @@ export default function Payments(props) {
         return 0;
       });
     }
-    // setSelectedList(list);
     setFilteredPaymentList(list);
     setSortedField("updateDate");
   }
-  function handleFormTextChangeValidations(message, index) {
-    props.onFormTextChangeValidations(message, index);
-  }
+
   function handleSearchKeyUp(event) {
     let searchText = event.target.value;
     setSearchText(searchText);
@@ -456,7 +391,7 @@ export default function Payments(props) {
   }
   function performSearchOperation(searchText) {
     let query = searchText.trim();
-    if (query.length == 0) {
+    if (query.length === 0) {
       setFilteredPaymentList(paymentList);
       return;
     }
@@ -464,15 +399,7 @@ export default function Payments(props) {
     searchedPayments = filterByShowInListAttributes(query);
     setFilteredPaymentList(searchedPayments);
   }
-  function filterByName(query) {
-    let fList = [];
-    for (let i = 0; i < selectedList.length; i++) {
-      if (selectedList[i].name.toLowerCase().includes(query.toLowerCase())) {
-        fList.push(selectedList[i]);
-      }
-    } //for
-    return fList;
-  }
+
   function filterByShowInListAttributes(query) {
     let fList = [];
     for (let i = 0; i < paymentList.length; i++) {
@@ -480,17 +407,16 @@ export default function Payments(props) {
         if (showInList[j].show) {
           let parameterName = showInList[j].attribute;
           if (
-            paymentList[i][parameterName] &&
-            paymentList[i][parameterName]
-              .toLowerCase()
-              .includes(query.toLowerCase())
+            paymentList[i][parameterName] !== undefined &&
+            paymentList[i][parameterName] !== null &&
+            String(paymentList[i][parameterName]).toLowerCase().includes(query.toLowerCase())
           ) {
             fList.push(paymentList[i]);
             break;
           }
         }
-      } //inner for
-    } //outer for
+      }
+    }
     return fList;
   }
   function handleToggleText(index) {
@@ -507,14 +433,10 @@ export default function Payments(props) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const arrayBuffer = event.target.result;
-      // Read the workbook from the array buffer
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      // Assume reading the first sheet
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      // Convert to JSON
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      // const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
       setSheetData(jsonData);
       let result = analyseImportExcelSheet(jsonData, paymentList);
       if (result.message) {
@@ -522,9 +444,7 @@ export default function Payments(props) {
       } else {
         showImportAnalysis(result);
       }
-      // analyseSheetData(jsonData, paymentList);
     };
-    // reader.readAsBinaryString(file);
     reader.readAsArrayBuffer(file);
   }
   function showImportAnalysis(result) {
@@ -532,48 +452,46 @@ export default function Payments(props) {
     setCntUpdate(result.cntU);
     setRecordsToBeAdded(result.recordsToBeAdded);
     setRecordsToBeUpdated(result.recordsToBeUpdated);
-    //open modal
     setFlagImport(true);
   }
   function handleModalCloseClick() {
     setFlagImport(false);
   }
   async function handleImportButtonClick() {
-    setFlagImport(false); // close the modal
+    setFlagImport(false);
     setFlagLoad(true);
     let result;
     try {
       if (recordsToBeAdded.length > 0) {
         result = await recordsAddBulk(
           recordsToBeAdded,
-          "payments",
+          "users",
           paymentList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setPaymentList(result.updatedList);
-          setFilteredPaymentList(result.updatedList);
+          await fetchAndProcessData();
         }
         showMessage(result.message);
       }
       if (recordsToBeUpdated.length > 0) {
         result = await recordsUpdateBulk(
           recordsToBeUpdated,
-          "payments",
+          "users",
           paymentList,
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
-          setPaymentList(result.updatedList);
-          setFilteredPaymentList(result.updatedList);
+          await fetchAndProcessData();
         }
         showMessage(result.message);
-      } //if
+      }
     } catch (error) {
       console.log(error);
       showMessage("Something went wrong, refresh the page");
+    } finally {
+      setFlagLoad(false);
     }
-    setFlagLoad(false);
   }
   function handleClearSelectedFile() {
     setSelectedFile(null);
@@ -585,6 +503,7 @@ export default function Payments(props) {
       </div>
     );
   }
+
   return (
     <>
       <CommonUtilityBar
@@ -602,57 +521,61 @@ export default function Payments(props) {
         onClearSelectedFile={handleClearSelectedFile}
       />
 
-      <div className="row px-3 my-2">
-        <div className="col-md-3">
-          <label className="form-label">Select Month</label>
-          <select
-            className="form-select"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          >
-            {Array.from({ length: 12 }, (_, i) => {
-              const month = String(i + 1).padStart(2, "0");
-              return (
-                <option key={month} value={month}>
-                  {new Date(0, i).toLocaleString("default", { month: "long" })}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        <div className="col-md-3">
-          <label className="form-label">Select Year</label>
-          <select
-            className="form-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-          >
-            {Array.from({ length: 5 }, (_, i) => {
-              const year = today.getFullYear() - 2 + i;
-              return (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      </div>
-
-      {filteredPaymentList.length == 0 && paymentList.length != 0 && (
+      {filteredPaymentList.length === 0 && paymentList.length !== 0 && (
         <div className="text-center">Nothing to show</div>
       )}
-      {paymentList.length == 0 && (
+      {paymentList.length === 0 && (
         <div className="text-center">List is empty</div>
       )}
-      {action == "list" && filteredPaymentList.length != 0 && (
+
+      {action === "list" && (
+        <div className="row px-3 my-2">
+          <div className="col-md-3">
+            <label className="form-label">Select Month</label>
+            <select
+              className="form-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              {Array.from({ length: 12 }, (_, i) => {
+                const month = String(i + 1).padStart(2, "0");
+                return (
+                  <option key={month} value={month}>
+                    {new Date(0, i).toLocaleString("default", { month: "long" })}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div className="col-md-3">
+            <label className="form-label">Select Year</label>
+            <select
+              className="form-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              {Array.from({ length: 5 }, (_, i) => {
+                const year = today.getFullYear() - 2 + i;
+                return (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {action === "list" && filteredPaymentList.length !== 0 && (
         <CheckBoxHeaders
           showInList={showInList}
           onListCheckBoxClick={handleListCheckBoxClick}
         />
       )}
-      {action == "list" && filteredPaymentList.length != 0 && (
-        <div className="row   my-2 mx-auto  p-1">
+
+      {action === "list" && filteredPaymentList.length !== 0 && (
+        <div className="row my-2 mx-auto p-1">
           <div className="col-1">
             <a
               href="#"
@@ -678,41 +601,47 @@ export default function Payments(props) {
           <div className="col-1">&nbsp;</div>
         </div>
       )}
-      {(action == "add" || action == "update") && (
+      {(action === "add" || action === "update") && (
         <div className="row">
           <PaymentForm
             paymentSchema={paymentSchema}
             paymentValidations={paymentValidations}
             emptyPayment={emptyPayment}
-            categoryList={categoryList}
             selectedEntity={selectedEntity}
             userToBeEdited={userToBeEdited}
             action={action}
             flagFormInvalid={flagFormInvalid}
             onFormSubmit={handleFormSubmit}
             onFormCloseClick={handleFormCloseClick}
-            onFormTextChangeValidations={handleFormTextChangeValidations}
           />
         </div>
       )}
-      {action == "list" &&
-        filteredPaymentList.length != 0 &&
+
+      {action === "list" &&
+        filteredPaymentList.length !== 0 &&
         filteredPaymentList.map((e, index) => (
-          <Entity
-            entity={e}
-            key={index + 1}
-            index={index}
-            sortedField={sortedField}
-            direction={direction}
-            listSize={filteredPaymentList.length}
-            selectedEntity={selectedEntity}
-            showInList={showInList}
-            VITE_API_URL={import.meta.env.VITE_API_URL}
-            onEditButtonClick={handleEditButtonClick}
-            onDeleteButtonClick={handleDeleteButtonClick}
-            onToggleText={handleToggleText}
-          />
+          <div
+            className="row mx-auto mt-2 my-1"
+            key={index}
+          >
+            <div className="col-12">
+              <Entity
+                entity={e}
+                index={index}
+                sortedField={sortedField}
+                direction={direction}
+                listSize={filteredPaymentList.length}
+                selectedEntity={selectedEntity}
+                showInList={showInList}
+                VITE_API_URL={import.meta.env.VITE_API_URL}
+                onEditButtonClick={handleEditButtonClick}
+                onDeleteButtonClick={handleDeleteButtonClick}
+                onToggleText={handleToggleText}
+              />
+            </div>
+          </div>
         ))}
+
       {flagImport && (
         <ModalImport
           modalText={"Summary of Bulk Import"}
@@ -727,3 +656,5 @@ export default function Payments(props) {
     </>
   );
 }
+
+

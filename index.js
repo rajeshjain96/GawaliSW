@@ -39,8 +39,8 @@ app.use("/products", auntheticateUser, logActivity, productRouter);
 app.use("/enquiries", auntheticateUser, logActivity, enquiryRouter);
 app.use("/quotations", auntheticateUser, logActivity, QuotationRouter);
 app.use("/customers", auntheticateUser, logActivity, customerRouter);
-
 app.use("/payments", auntheticateUser, logActivity, paymentRouter);
+
 app.use("/roles", auntheticateUser, logActivity, roleRouter);
 app.use("/areas", areaRouter);
 app.use("/staff", staffRouter);

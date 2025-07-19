@@ -1,414 +1,321 @@
 import { useEffect, useState } from "react";
 import { fieldValidate } from "../external/vite-sdk";
 import "../formstyles.css";
-import { SingleFileUpload } from "../external/vite-sdk";
 
 export default function PaymentForm(props) {
-  let [user, setUser] = useState({});
-  let [errorUser, setErrorUser] = useState(props.paymentValidations);
+  let [payment, setPayment] = useState({});
+  let [originalCumulativePaidAmount, setOriginalCumulativePaidAmount] = useState(0);
+
+  let [errorPayment, setErrorPayment] = useState(props.paymentValidations);
   let [flagFormInvalid, setFlagFormInvalid] = useState(false);
   let { action } = props;
   let { selectedEntity } = props;
-  let { categoryList } = props;
   let { paymentSchema } = props;
-  let [singleFileList, setSingleFileList] = useState(
-    getSingleFileListFromPaymentSchema()
-  );
-  function getSingleFileListFromPaymentSchema() {
-    let list = [];
-    paymentSchema.forEach((e, index) => {
-      let obj = {};
-      if (e.type == "singleFile") {
-        obj["fileAttributeName"] = e.attribute;
-        obj["allowedFileType"] = e.allowedFileType;
-        obj["allowedSize"] = e.allowedSize;
-        list.push(obj);
-      }
-    });
-    return list;
-  }
+
   useEffect(() => {
     window.scroll(0, 0);
     init();
-    //setUser(props.emptyPayment);
-  }, []);
+  }, [props.action, props.userToBeEdited]);
+
   function init() {
     let { action } = props;
     if (action === "add") {
-      // emptyPayment.category = props.categoryToRetain;
-      // emptyPayment.categoryId = props.categoryIdToRetain;
-      setUser(props.emptyPayment);
+      setPayment({ ...props.emptyPayment, paidAmount: null, payment_mode: "Cash" }); // Default to Cash for new additions
+      setOriginalCumulativePaidAmount(0);
+      setErrorPayment(props.paymentValidations);
     } else if (action === "update") {
-      // in edit mode, keep the update button enabled at the beginning
       setFlagFormInvalid(false);
-      setUser(props.userToBeEdited);
+      
+      const paidAmountForForm = props.userToBeEdited.paidAmount === 0 ? null : props.userToBeEdited.paidAmount;
+      const paymentModeForForm = props.userToBeEdited.payment_mode || "Cash"; // Default to Cash if not set
+      setPayment({ ...props.userToBeEdited, paidAmount: paidAmountForForm, payment_mode: paymentModeForForm }); 
+      setOriginalCumulativePaidAmount(parseFloat(props.userToBeEdited.paidAmount) || 0);
+
+      const initialErrorState = {};
+      for (const key in props.paymentValidations) {
+          initialErrorState[key] = { ...props.paymentValidations[key], message: "" };
+      }
+      setErrorPayment(initialErrorState);
     }
   }
-  // function handleTextFieldChange(event) {
-  //   let name = event.target.name;
-  //   setUser({ ...user, [name]: event.target.value });
-  //   let message = fieldValidate(event, errorUser);
-  //   let errPayment = { ...errorUser };
-  //   errorUser[`${name}`].message = message;
-  //   setErrorUser(errPayment);
-  // }
+
   function handleTextFieldChange(event) {
     let name = event.target.name;
     let value = event.target.value;
-  
-    let updatedUser = { ...user, [name]: value };
-  
-    if (name === "totalMonthlyAmount" || name === "paidAmount") {
-      const total = parseFloat(updatedUser.totalMonthlyAmount || 0);
-      const paid = parseFloat(updatedUser.paidAmount || 0);
-      updatedUser.balanceAmount = (total - paid).toFixed(2);
+
+    const currentFieldSchema = paymentSchema.find(f => f.attribute === name);
+    const isNumberField = (currentFieldSchema && currentFieldSchema.type === 'normal' && (
+                           currentFieldSchema.attribute === 'totalDelivered' ||
+                           currentFieldSchema.attribute === 'totalMonthlyAmount' ||
+                           currentFieldSchema.attribute === 'paidAmount' ||
+                           currentFieldSchema.attribute === 'balanceAmount'));
+    
+    let newValueParsed;
+    if (name === 'paidAmount' && value === "") {
+        newValueParsed = null;
+    } else if (isNumberField) {
+        newValueParsed = parseFloat(value) || 0;
+    } else {
+        newValueParsed = value;
     }
-  
-    setUser(updatedUser);
-  
-    let message = fieldValidate(event, errorUser);
-    let errPayment = { ...errorUser };
-    errorUser[`${name}`].message = message;
-    setErrorUser(errPayment);
+
+    let updatedPayment = { ...payment, [name]: newValueParsed };
+
+    const currentTotalMonthlyAmount = parseFloat(updatedPayment.totalMonthlyAmount) || 0;
+    const newAmountEnteredInPaidField = parseFloat(updatedPayment.paidAmount) || 0;
+    
+    const effectiveCumulativePaidAmount = originalCumulativePaidAmount + newAmountEnteredInPaidField;
+    
+    updatedPayment.balanceAmount = currentTotalMonthlyAmount - effectiveCumulativePaidAmount;
+
+    setPayment(updatedPayment);
+
+    let message = fieldValidate(event, props.paymentValidations);
+    let errPayment = { ...errorPayment };
+    errPayment[`${name}`].message = message;
+    setErrorPayment(errPayment);
   }
-  
+
+  // New handler for radio button change
+  function handleRadioButtonChange(event) {
+    const { name, value } = event.target;
+    setPayment({ ...payment, [name]: value });
+    let errPayment = { ...errorPayment };
+    if (errPayment[name]) {
+      errPayment[name].message = "";
+    }
+    setErrorPayment(errPayment);
+  }
+
   function handleBlur(event) {
     let name = event.target.name;
-    let message = fieldValidate(event, errorUser);
-    let errPayment = { ...errorUser };
-    errorUser[`${name}`].message = message;
-    setErrorUser(errPayment);
+    let message = fieldValidate(event, props.paymentValidations);
+    let errPayment = { ...errorPayment };
+    errPayment[`${name}`].message = message;
+    setErrorPayment(errPayment);
   }
+
   function handleFocus(event) {
     setFlagFormInvalid(false);
+    let name = event.target.name;
+    let errPayment = { ...errorPayment };
+    if (errPayment[name] && errPayment[name].message) {
+        errPayment[name].message = "";
+        setErrorPayment(errPayment);
+    }
   }
 
-  // function checkAllErrors() {
-  //   for (let field in errorUser) {
-  //     if (errorUser[field].message !== "") {
-  //       return true;
-  //     } //if
-  //   } //for
-  //   let errProduct = { ...errorUser };
-  //   let flag = false;
-
-  //   // for (let field in user) {
-  //   //   if (errorUser[field] && user[field] == "") {
-  //   //     flag = true;
-  //   //     errProduct[field].message = "Required...";
-  //   //   } //if
-  //   // } //for
-  //   for (let field in user) {
-  //     // Skip fields not shown in form
-  //     // if (["status", "role"].includes(field)) continue;
-  //     if (["role"].includes(field)) continue;
-
-  //     if (errorUser[field] && user[field] == "") {
-  //       flag = true;
-  //       errProduct[field].message = "Required...";
-  //     }
-  //   }
-
-  //   if (flag) {
-  //     setErrorUser(errProduct);
-  //     return true;
-  //   }
-  //   return false;
-  // }
   function checkAllErrors() {
-    console.log("▶️ User object:", user);
-    console.log("▶️ Error object before validation:", errorUser);
-
-    for (let field in errorUser) {
-      if (errorUser[field].message !== "") {
-        return true;
-      }
+    let formHasErrors = false;
+    const newErrorPayment = {};
+    for (const key in props.paymentValidations) {
+        newErrorPayment[key] = { ...props.paymentValidations[key], message: "" };
     }
 
-    let errPayment = { ...errorUser };
-    let flag = false;
+    paymentSchema.forEach((field) => {
+        const attribute = field.attribute;
+        if (attribute === "name") return;
 
-    for (let field in user) {
-      if (["role"].includes(field)) continue;
+        const inputType = (field.type === 'normal' && (
+                            field.attribute === 'totalDelivered' ||
+                            field.attribute === 'totalMonthlyAmount' ||
+                            field.attribute === 'paidAmount' ||
+                            field.attribute === 'balanceAmount')) ? 'number' : 'text';
 
-      if (errorUser[field] && user[field] == "") {
-        flag = true;
-        errPayment[field].message = "Required...";
-      }
-    }
+        const fieldValue = payment[attribute];
+        const validationRule = props.paymentValidations[attribute];
 
-    if (flag) {
-      console.log("⛔ Error object after validation:", errPayment); // <-- add this
-      setErrorUser(errPayment);
-      return true;
-    }
+        if (validationRule) {
+            let message = "";
+            if (attribute === 'paidAmount') {
+                if (fieldValue !== null && isNaN(parseFloat(fieldValue))) {
+                    message = "Enter a valid number.";
+                }
+            } else if (attribute === 'payment_mode') { // Specific validation for payment_mode
+                if (!fieldValue || fieldValue.trim() === "") { // Ensure a mode is selected
+                    message = "Required...";
+                }
+            }
+            else if (
+                (inputType === 'number' && (fieldValue === null || fieldValue === undefined || fieldValue === "")) ||
+                (inputType !== 'number' && (fieldValue === "" || fieldValue === null || fieldValue === undefined || String(fieldValue).trim() === ""))
+            ) {
+                message = "Required...";
+            } else {
+                const dummyEvent = { target: { name: attribute, value: fieldValue } };
+                message = fieldValidate(dummyEvent, props.paymentValidations);
+            }
 
-    return false;
+            if (message !== "") {
+                formHasErrors = true;
+                newErrorPayment[attribute].message = message;
+            }
+        }
+    });
+
+    setErrorPayment(newErrorPayment);
+    return formHasErrors;
   }
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    // for dropdown, data is to be modified
-    // first check whether all entries are valid or not
     if (checkAllErrors()) {
       setFlagFormInvalid(true);
       return;
     }
     setFlagFormInvalid(false);
-    if (action == "update") {
-      // There might be files in this form, add those also
-      let pr = { ...user };
-      for (let i = 0; i < singleFileList.length; i++) {
-        let fAName = singleFileList[i].fileAttributeName;
-        if (pr[fAName + "New"]) {
-          // image is modified
-          // if field-name is image, temporarily in "imageNew" field, new file-name is saved.
-          pr[fAName] = pr[fAName + "New"];
-          delete pr[fAName + "New"];
-        }
-      } //for
-      setUser(pr);
-      props.onFormSubmit(pr);
-    } else if (action == "add") {
-      console.log("📝 Submitting form with data:", user);
-      props.onFormSubmit(user);
-    }
-  };
-  function handleFileChange(selectedFile, fileIndex, message) {
-    setFlagFormInvalid(false);
-    if (action == "add") {
-      // add datesuffix to file-name
-      const timestamp = Date.now();
-      const ext = selectedFile.name.split(".").pop();
-      const base = selectedFile.name.replace(/\.[^/.]+$/, "");
-      const newName = `${base}-${timestamp}.${ext}`;
-      // Create a new File object with the new name
-      const renamedFile = new File([selectedFile], newName, {
-        type: selectedFile.type,
-        lastModified: selectedFile.lastModified,
-      });
-      setUser({
-        ...user,
-        ["file" + fileIndex]: renamedFile,
-        [singleFileList[fileIndex].fileAttributeName]: newName,
-      });
-      let errPayment = { ...errorUser };
-      errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
-      setErrorUser(errPayment);
-      // setErrorUser({ ...errorUser, message: message });
-    }
-  }
-  function handleFileRemove(selectedFile, fileIndex, message) {
-    if (action == "add") {
-      setFlagFormInvalid(false);
-      setUser({
-        ...user,
-        [singleFileList[fileIndex].fileAttributeName]: "",
-      });
-      let errPayment = { ...errorUser };
-      errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
-      setErrorUser(errPayment);
-    } else if (action == "update") {
-      let newFileName = "";
-      if (selectedFile) {
-        newFileName = selectedFile.name;
-      } else {
-        // user selected a new file but then deselected
-        newFileName = "";
-      }
-      setUser({
-        ...user,
-        ["file" + fileIndex]: selectedFile,
-        [singleFileList[fileIndex].fileAttributeName + "New"]: newFileName,
-      });
-      let errPayment = { ...errorUser };
-      errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
-      setErrorUser(errPayment);
-    }
-  }
-  function handleFileChangeUpdateMode(selectedFile, fileIndex, message) {
-    let newFileName = "";
-    if (selectedFile) {
-      newFileName = selectedFile.name;
-    } else {
-      // user selected a new file but then deselected
-      newFileName = "";
-    }
-    setUser({
-      ...user,
-      // file: file,
-      ["file" + fileIndex]: selectedFile,
-      [singleFileList[fileIndex].fileAttributeName + "New"]: newFileName,
-      // [singleFileList[fileIndex].fileAttributeName]: selectedFile.name,
-    });
-    let errPayment = { ...errorUser };
-    errPayment[singleFileList[fileIndex].fileAttributeName].message = message;
-    setErrorUser(errPayment);
-  }
-  function handleCancelChangeImageClick() {
-    if (action == "update") {
-      let fl = [...singleFileList];
-      fl[fileIndex]["newFileName"] = "";
-      fl[fileIndex]["newFile"] = "";
-      setSingleFileList(fl);
-    }
-  }
-  function handleSelectCategoryChange(event) {
-    let index = event.target.selectedIndex; // get selected index, instead of selected value
-    var optionElement = event.target.childNodes[index];
-    var selectedCategoryId = optionElement.getAttribute("id");
-    let category = event.target.value.trim();
-    let categoryId = selectedCategoryId;
-    setUser({ ...user, category: category, categoryId: categoryId });
-  }
 
-  let optionsCategory = categoryList.map((category, index) =>
-    category.rating != 1 ? (
-      <option value={category.name} key={index} id={category._id}>
-        {category.name}
-      </option>
-    ) : null
-  );
+    const finalPaymentData = { ...payment };
+    
+    const newAmountEntered = parseFloat(finalPaymentData.paidAmount) || 0;
+    finalPaymentData.paidAmount = originalCumulativePaidAmount + newAmountEntered;
+    
+    finalPaymentData.balanceAmount = (parseFloat(finalPaymentData.totalMonthlyAmount) || 0) - finalPaymentData.paidAmount;
+
+    if (finalPaymentData.paidAmount === null || isNaN(finalPaymentData.paidAmount)) {
+        finalPaymentData.paidAmount = 0;
+    }
+
+    props.onFormSubmit(finalPaymentData);
+  };
+
+  const renderFormFields = () => {
+    return paymentSchema.map((field, index) => {
+      if (field.attribute === "name") {
+        return (
+            <div className="col-6 my-2" key={field.attribute}>
+              <div className="text-bold my-1">
+                <label>Name</label>
+              </div>
+              <div className="px-0">
+                <input
+                  type="text"
+                  className="form-control"
+                  name="name"
+                  value={payment.name || ""}
+                  readOnly
+                  disabled
+                />
+              </div>
+            </div>
+        );
+      }
+
+      // Render Payment Mode as radio buttons
+      if (field.attribute === "payment_mode") {
+        return (
+          <div className="col-6 my-2" key={field.attribute}>
+            <div className="text-bold my-1">
+              <label>Payment Mode</label>
+            </div>
+            <div className="px-0">
+              <div className="form-check form-check-inline">
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="payment_mode"
+                  id="paymentModeCash"
+                  value="Cash"
+                  checked={payment.payment_mode === "Cash"}
+                  onChange={handleRadioButtonChange}
+                  onBlur={handleBlur}
+                  onFocus={handleFocus}
+                />
+                <label className="form-check-label" htmlFor="paymentModeCash">Cash</label>
+              </div>
+              <div className="form-check form-check-inline">
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="payment_mode"
+                  id="paymentModeOnline"
+                  value="Online"
+                  checked={payment.payment_mode === "Online"}
+                  onChange={handleRadioButtonChange}
+                  onBlur={handleBlur}
+                  onFocus={handleFocus}
+                />
+                <label className="form-check-label" htmlFor="paymentModeOnline">Online</label>
+              </div>
+            </div>
+            <div className="">
+              {errorPayment[field.attribute]?.message ? (
+                <span className="text-danger">
+                  {errorPayment[field.attribute].message}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        );
+      }
+
+      // General rendering for other input fields
+      const inputType =
+        field.type === "normal" &&
+        (field.attribute === "totalDelivered" ||
+          field.attribute === "totalMonthlyAmount" ||
+          field.attribute === "paidAmount" ||
+          field.attribute === "balanceAmount")
+          ? "number"
+          : "text";
+
+      const isTextArea = field.type === "text-area";
+
+      const InputComponent = isTextArea ? "textarea" : "input";
+
+      return (
+        <div className="col-6 my-2" key={field.attribute}>
+          <div className="text-bold my-1">
+            <label>
+              {field.attribute
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase())}
+            </label>
+          </div>
+          <div className="px-0">
+            <InputComponent
+              type={inputType}
+              className="form-control"
+              name={field.attribute}
+              value={
+                  field.attribute === 'paidAmount'
+                    ? (payment[field.attribute] === null || payment[field.attribute] === undefined ? "" : payment[field.attribute])
+                    : payment[field.attribute] === null || payment[field.attribute] === undefined
+                      ? (inputType === "number" ? 0 : "")
+                      : payment[field.attribute]
+              }
+              onChange={handleTextFieldChange}
+              onBlur={handleBlur}
+              onFocus={handleFocus}
+              placeholder={`Enter ${field.attribute
+                .replace(/([A-Z])/g, " $1")
+                .toLowerCase()}`}
+              {...(field.attribute === 'balanceAmount' ? { readOnly: true, disabled: true } : {})}
+              {...(isTextArea ? { rows: 5, style: { height: "150px" } } : {})}
+            />
+          </div>
+          <div className="">
+            {errorPayment[field.attribute]?.message ? (
+              <span className="text-danger">
+                {errorPayment[field.attribute].message}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      );
+    });
+  };
 
   return (
     <div className="p-2">
       <form className="text-thick p-4" onSubmit={handleFormSubmit}>
-        {/* row starts */}
-        {/* name */}
         <div className="form-group row align-items-center">
-          <div className="col-6 my-2">
-            <div className="text-bold my-1">
-              <label>Name</label>
-            </div>
-            <div className=" px-0">
-              <input
-                type="text"
-                className="form-control"
-                name="name"
-                value={user.name || ""}
-                onChange={handleTextFieldChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-                placeholder="Enter Customer name"
-              />
-            </div>
-            <div className="">
-              {errorUser.name.message ? (
-                <span className="text-danger">{errorUser.name.message}</span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* total milk delivered */}
-          <div className="col-6 my-2">
-            <div className="text-bold my-1">
-              <label>Total Milk Delivered</label>
-            </div>
-            <div className=" px-0">
-              <input
-                type="text"
-                className="form-control"
-                name="totalDelivered"
-                value={user.totalDelivered || ""}
-                onChange={handleTextFieldChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-                placeholder="Enter Total milk delivered qty"
-              />
-            </div>
-            <div className="">
-              {errorUser.totalDelivered.message ? (
-                <span className="text-danger">
-                  {errorUser.totalDelivered.message}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* bill amount */}
-          <div className="col-6 my-2">
-            <div className="text-bold my-1">
-              <label>Monthly Bill Amount</label>
-            </div>
-            <div className=" px-0">
-              <input
-                type="text"
-                className="form-control"
-                name="totalMonthlyAmount"
-                value={user.totalMonthlyAmount || ""}
-                onChange={handleTextFieldChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-                placeholder="Enter Monthly Bill Amount"
-              />
-            </div>
-            <div className="">
-              {errorUser.totalMonthlyAmount.message ? (
-                <span className="text-danger">
-                  {errorUser.totalMonthlyAmount.message}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Paid amount */}
-          <div className="col-6 my-2">
-            <div className="text-bold my-1">
-              <label>Paid Amount</label>
-            </div>
-            <div className=" px-0">
-              <input
-                type="text"
-                className="form-control"
-                name="paidAmount"
-                value={user.paidAmount || ""}
-                onChange={handleTextFieldChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-                placeholder="Enter Amount Paid"
-              />
-            </div>
-            <div className="">
-              {errorUser.paidAmount.message ? (
-                <span className="text-danger">
-                  {errorUser.paidAmount.message}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Mode of Payment */}
-          {/* <div className="col-6 my-2">
-            <div className="text-bold my-1">
-              <label>Mode of Payment</label>
-            </div>
-            <div className="px-0">
-              <select
-                name="modeOfPayment"
-                className="form-select"
-                value={user.modeOfPayment || "Cash"}
-                onChange={handleTextFieldChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-              >
-                <option value="Cash">Cash</option>
-                <option value="Online">Online</option>
-              </select>
-            </div>
-            <div className="">
-              {errorUser.modeOfPayment?.message && (
-                <span className="text-danger">
-                  {errorUser.modeOfPayment.message}
-                </span>
-              )}
-            </div>
-          </div> */}
+          {renderFormFields()}
 
           <div className="col-12">
             <button
               className="btn btn-primary"
               type="submit"
-              // disabled={flagFormInvalid}
             >
               {(action + " " + selectedEntity.singularName).toUpperCase()}
             </button>{" "}
@@ -423,3 +330,4 @@ export default function PaymentForm(props) {
     </div>
   );
 }
+

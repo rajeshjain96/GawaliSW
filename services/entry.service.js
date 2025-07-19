@@ -1,4 +1,4 @@
-
+// entry.service.js
 const { app } = require("../init.js");
 const { ObjectId } = require("mongodb");
 
@@ -28,6 +28,12 @@ async function addEntry(obj) {
       obj[key] = normalizeNewlines(obj[key]);
     }
   }
+  if (obj.date instanceof Date) {
+    obj.date = obj.date.toISOString().split('T')[0];
+  } else if (typeof obj.date === 'string' && obj.date.includes('T')) {
+    obj.date = obj.date.split('T')[0];
+  }
+
   let result = await collection.insertOne(obj);
   obj._id = result.insertedId;
   return obj;
@@ -36,7 +42,17 @@ async function addEntry(obj) {
 async function addManyEntries(entries) {
   const db = app.locals.db;
   const collection = db.collection("entries");
-  const result = await collection.insertMany(entries);
+  const processedEntries = entries.map(entry => {
+    const newEntry = { ...entry };
+    if (newEntry.date instanceof Date) {
+      newEntry.date = newEntry.date.toISOString().split('T')[0];
+    } else if (typeof newEntry.date === 'string' && newEntry.date.includes('T')) {
+      newEntry.date = newEntry.date.split('T')[0];
+    }
+    return newEntry;
+  });
+
+  const result = await collection.insertMany(processedEntries);
   const insertedIds = Object.values(result.insertedIds);
   const insertedDocs = await collection
     .find({ _id: { $in: insertedIds } })
@@ -49,10 +65,17 @@ async function updateManyEntries(entries) {
   const collection = db.collection("entries");
   const operations = entries.map((user) => {
     const { _id, ...fieldsToUpdate } = user;
+    
+    if (fieldsToUpdate.date instanceof Date) {
+      fieldsToUpdate.date = fieldsToUpdate.date.toISOString().split('T')[0];
+    } else if (typeof fieldsToUpdate.date === 'string' && fieldsToUpdate.date.includes('T')) {
+      fieldsToUpdate.date = fieldsToUpdate.date.split('T')[0];
+    }
+
     return {
       updateOne: {
         filter: { _id: ObjectId.createFromHexString(_id) },
-        update: { $set: fieldsToUpdate },
+        update: { $set: { ...fieldsToUpdate, updateDate: new Date() } },
       },
     };
   });
@@ -64,16 +87,75 @@ async function updateManyEntries(entries) {
   return updatedCustomers;
 }
 
-async function updateEntry(obj) {
+async function updateEntry(entryId, fieldsToUpdate) {
   const db = app.locals.db;
   const collection = db.collection("entries");
-  let id = obj._id;
-  delete obj._id;
-  let result = await collection.updateOne(
-    { _id: ObjectId.createFromHexString(id) },
-    { $set: obj }
-  );
-  return result;
+
+  fieldsToUpdate.updateDate = new Date();
+
+  if (fieldsToUpdate.date instanceof Date) {
+    fieldsToUpdate.date = fieldsToUpdate.date.toISOString().split('T')[0];
+  } else if (typeof fieldsToUpdate.date === 'string' && fieldsToUpdate.date.includes('T')) {
+    fieldsToUpdate.date = fieldsToUpdate.date.split('T')[0];
+  }
+
+  let objectIdToQuery;
+  try {
+    objectIdToQuery = ObjectId.createFromHexString(entryId);
+    console.log(`Backend Debug: updateEntry - Converted entryId "${entryId}" to ObjectId:`, objectIdToQuery);
+    console.log(`Backend Debug: updateEntry - Is converted ObjectId valid?`, ObjectId.isValid(objectIdToQuery));
+  } catch (e) {
+    console.error(`Backend Error: Failed to create ObjectId from "${entryId}":`, e);
+    return null;
+  }
+
+  try {
+    const foundDoc = await collection.findOne({ _id: objectIdToQuery });
+    console.log(`Backend Debug: updateEntry - Result of pre-update findOne for _id ${objectIdToQuery}:`, foundDoc);
+    if (!foundDoc) {
+      console.error(`Backend Error: updateEntry - findOne did NOT find document with _id ${objectIdToQuery}.`);
+      return null;
+    }
+  } catch (findError) {
+    console.error(`Backend Error: updateEntry - Error during pre-update findOne for _id ${objectIdToQuery}:`, findError);
+    return null;
+  }
+
+  let updatedDocument = null;
+  try {
+    const updateOperationResult = await collection.findOneAndUpdate(
+      { _id: objectIdToQuery },
+      { $set: fieldsToUpdate },
+      { returnDocument: 'after' }
+    );
+
+    console.log(`Backend Debug: updateEntry - Raw result from findOneAndUpdate for _id ${objectIdToQuery}:`, updateOperationResult);
+    
+    if (updateOperationResult && updateOperationResult.value) {
+        updatedDocument = updateOperationResult.value;
+    } else if (updateOperationResult && updateOperationResult._id) { // Fallback if .value is empty but raw result contains _id (older drivers)
+        // If the entire result object itself is the updated document (common in some older drivers or simple update operations)
+        updatedDocument = updateOperationResult;
+        console.warn('Backend Warning: findOneAndUpdate.value was empty, but raw result contained the updated document (potentially older driver behavior).');
+    } else {
+        // If still no document, try a manual re-fetch as a last resort (should not be needed with proper returnDocument option)
+        console.warn('Backend Warning: findOneAndUpdate returned no value. Attempting manual re-fetch.');
+        updatedDocument = await collection.findOne({ _id: objectIdToQuery });
+    }
+    
+    console.log(`Backend Debug: updateEntry - Extracted updatedDocument:`, updatedDocument);
+
+  } catch (updateError) {
+    console.error(`Backend Error: updateEntry - Error during findOneAndUpdate for _id ${objectIdToQuery}:`, updateError);
+    return null;
+  }
+
+  if (!updatedDocument) {
+    console.error(`Entry with ID ${entryId} not found for update in service (after findOneAndUpdate returned no value).`);
+    return null;
+  }
+
+  return updatedDocument;
 }
 
 async function deleteEntry(id) {
@@ -98,110 +180,4 @@ module.exports = EntryService = {
   updateEntry,
   deleteEntry,
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const Entry = require("../models/entry.model");
-// const mongoose = require("mongoose");
-
-// function normalizeNewlines(text) {
-//   return text.replace(/\r\n/g, "\n");
-// }
-
-// // Get all entries
-// async function getAllEntries() {
-//   return await Entry.find();
-// }
-
-// // Get entry by ID
-// async function getEntryById(id) {
-//   const entry = await Entry.findById(id);
-//   return entry;
-// }
-
-// // Add a single entry
-// async function addEntry(obj) {
-//   const keys = Object.keys(obj);
-//   for (let key of keys) {
-//     if (typeof obj[key] === "string") {
-//       obj[key] = normalizeNewlines(obj[key]);
-//     }
-//   }
-//   obj.addDate = new Date();
-//   obj.updateDate = new Date();
-
-//   const newEntry = new Entry(obj);
-//   const saved = await newEntry.save();
-//   return saved;
-// }
-
-// // Add multiple entries
-// async function addManyEntries(entries) {
-//   const normalizedEntries = entries.map((e) => {
-//     const entry = { ...e };
-//     Object.keys(entry).forEach((key) => {
-//       if (typeof entry[key] === "string") {
-//         entry[key] = normalizeNewlines(entry[key]);
-//       }
-//     });
-//     entry.addDate = new Date();
-//     entry.updateDate = new Date();
-//     return entry;
-//   });
-
-//   const inserted = await Entry.insertMany(normalizedEntries);
-//   return inserted;
-// }
-
-// // Update a single entry
-// async function updateEntry(obj) {
-//   const { _id, ...rest } = obj;
-//   rest.updateDate = new Date();
-
-//   const updated = await Entry.findByIdAndUpdate(_id, { $set: rest }, { new: true });
-//   return updated;
-// }
-
-// // Update multiple entries
-// async function updateManyEntries(entries) {
-//   const result = [];
-
-//   for (const entry of entries) {
-//     const { _id, ...rest } = entry;
-//     rest.updateDate = new Date();
-
-//     const updated = await Entry.findByIdAndUpdate(_id, { $set: rest }, { new: true });
-//     if (updated) result.push(updated);
-//   }
-
-//   return result;
-// }
-
-// // Delete entry
-// async function deleteEntry(id) {
-//   const deleted = await Entry.findByIdAndDelete(id);
-//   return deleted;
-// }
-
-// module.exports = {
-//   getAllEntries,
-//   getEntryById,
-//   addEntry,
-//   addManyEntries,
-//   updateEntry,
-//   updateManyEntries,
-//   deleteEntry,
-// };
-
 

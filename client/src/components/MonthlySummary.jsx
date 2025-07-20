@@ -1,4 +1,3 @@
-// utils/calculateMonthlySummary.js
 import axios from "axios";
 
 export async function getMonthlySummary() {

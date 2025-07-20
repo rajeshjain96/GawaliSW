@@ -9,7 +9,8 @@ import AdminRoles from "./AdminRoles";
 import AdminUsers from "./AdminUsers";
 import Customers from "./Customers"
 import Payments from "./Payments";
-import Calculations from "./Caculations"
+// import Calculations from "./Caculations"
+import Bills from "./Bills"
 
 export default function ContentPage(props) {
   let { selectedEntity } = props;
@@ -79,8 +80,14 @@ export default function ContentPage(props) {
           flagToggleButton={flagToggleButton}
         />
       )}
-       {selectedEntity.name == "Calculations" && (
+       {/* {selectedEntity.name == "Calculations" && (
         <Calculations
+          selectedEntity={selectedEntity}
+          flagToggleButton={flagToggleButton}
+        />
+      )} */}
+      {selectedEntity.name == "Bills" && (
+        <Bills
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
@@ -90,7 +97,8 @@ export default function ContentPage(props) {
 
       {selectedEntity.name == "Roles" && (
         <AdminRoles
-          selectedEntity={selectedEntity}
+          selectedEntity
+          ={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
       )}

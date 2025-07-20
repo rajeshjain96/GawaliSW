@@ -11,6 +11,8 @@ const productRouter = require("./routers/product.router.js");
 const customerRouter = require("./routers/customer.router.js");
 const EntryRouter = require("./routers/entry.router.js");
 const PaymentRouter = require("./routers/payment.router.js");
+const BillRouter = require("./routers/bill.router.js");
+
 
 
 app.use(cors());
@@ -21,6 +23,7 @@ app.use("/products", productRouter);
 app.use("/customers", customerRouter);
 app.use("/entries", EntryRouter);
 app.use("/payments", PaymentRouter);
+app.use("/billls", BillRouter);
 
 let connectionString = `mongodb://127.0.0.1:27017/restaurantdb`;
 connectToDatabase();

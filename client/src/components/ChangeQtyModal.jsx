@@ -38,7 +38,7 @@ export default function ChangeQtyModal({
               value={qty}
               onChange={onQtyChange}
               min="0"
-              step="0.1"
+              step="0.25"
             />
           </div>
         </div>

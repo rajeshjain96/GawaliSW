@@ -1,0 +1,5 @@
+23/7/2025, 10:50:51 pm — [ERROR] — guest encountered error during POST /milkrates — Cannot read properties of null (reading 'value')
+23/7/2025, 11:16:16 pm — [ERROR] — guest encountered error during POST /milkrates — Failed to save/update milk rate due to database constraint.
+23/7/2025, 11:17:32 pm — [ERROR] — guest encountered error during POST /milkrates — Failed to save/update milk rate due to database constraint.
+23/7/2025, 11:20:20 pm — [ERROR] — guest encountered error during POST /milkrates — Cannot read properties of null (reading 'value')
+23/7/2025, 11:23:25 pm — [ERROR] — guest encountered error during PUT /milkrates — hex string must be 24 characters

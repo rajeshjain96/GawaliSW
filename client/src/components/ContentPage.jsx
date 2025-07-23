@@ -9,15 +9,18 @@ import AdminRoles from "./AdminRoles";
 import AdminUsers from "./AdminUsers";
 import Customers from "./Customers"
 import Payments from "./Payments";
+import BackButton from "./BackButton";
+import MilkRates from "./MilkRates"
 // import Calculations from "./Caculations"
 import Bills from "./Bills"
 
 export default function ContentPage(props) {
   let { selectedEntity } = props;
-  let { flagToggleButton } = props;
+  let { flagToggleButton , onBack } = props;
   let { user } = props;
   return (
     <>
+    <div className="text-center"><BackButton onBack={onBack} /></div>
       {selectedEntity.isReady == false && (
         <h5 className="text-center">Work in Progress !</h5>
       )}
@@ -88,6 +91,12 @@ export default function ContentPage(props) {
       )} */}
       {selectedEntity.name == "Bills" && (
         <Bills
+          selectedEntity={selectedEntity}
+          flagToggleButton={flagToggleButton}
+        />
+      )}
+      {selectedEntity.name == "MilkRates" && (
+        <MilkRates
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />

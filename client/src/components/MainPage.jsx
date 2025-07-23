@@ -1,49 +1,47 @@
 import { useEffect, useState } from "react";
-import SideBar from "./SideBar";
 import ContentPage from "./ContentPage";
-import HomePage from "./HomePage";
 import LoginSignupPage from "./LoginSignupPage";
 import axios from "axios";
 import { BeatLoader } from "react-spinners";
+
 export default function MainPage() {
   let [selectedEntity, setSelectedEntity] = useState("");
-  let [flagToggleButton, setFlagToggleButton] = useState(false);
-  let [user, setUser] = useState("");
-  let [view, setView] = useState("home");
+  let [user, setUser] = useState(""); 
+  let [view, setView] = useState("home"); 
   let [flagLoad, setFlagLoad] = useState(false);
   let [message, setMessage] = useState("");
   let [selectedMenuIndex, setSelectedMenuIndex] = useState(-1);
   let [selectedEntityIndex, setSelectedEntityIndex] = useState(-1);
+
   let menus = [
     {
       name: "Manage",
       accessLevel: "D",
       entities: [
-        {
-          name: "Products",
-          singularName: "Product",
-          addFacility: true,
-          deleteFacility : true,
-          editFacility:true,
-          isReady: true,
-          accessLevel: "D",
-        },
-        {
-          name: "Enquiries",
-          singularName: "Enquiry",
-          addFacility: true,
-          deleteFacility : true,
-          editFacility:true,
-          isReady: true,
-          accessLevel: "D",
-        },
-
+        // {
+        //   name: "Products",
+        //   singularName: "Product",
+        //   addFacility: true,
+        //   deleteFacility: true,
+        //   editFacility: true,
+        //   isReady: true,
+        //   accessLevel: "D",
+        // },
+        // {
+        //   name: "Enquiries",
+        //   singularName: "Enquiry",
+        //   addFacility: true,
+        //   deleteFacility: true,
+        //   editFacility: true,
+        //   isReady: true,
+        //   accessLevel: "D",
+        // },
         {
           name: "Areas",
           singularName: "Area",
           addFacility: true,
-          deleteFacility : true,
-          editFacility:true,
+          deleteFacility: true,
+          editFacility: true,
           isReady: true,
           accessLevel: "A",
         },
@@ -51,8 +49,8 @@ export default function MainPage() {
           name: "Customers",
           singularName: "Customer",
           addFacility: true,
-          deleteFacility : true,
-          editFacility:true,
+          deleteFacility: true,
+          editFacility: true,
           isReady: true,
           dbCollection: "users",
           accessLevel: "A",
@@ -61,10 +59,9 @@ export default function MainPage() {
           name: "DailyEntries",
           singularName: "DailyEntry",
           addFacility: false,
-          deleteFacility : false,
-          editFacility:false,
+          deleteFacility: false,
+          editFacility: false,
           isReady: true,
-          // dbCollection: "users",
           dbCollection: "entries",
           accessLevel: "A",
         },
@@ -72,32 +69,19 @@ export default function MainPage() {
           name: "Payments",
           singularName: "Payment",
           addFacility: false,
-          deleteFacility : true,
-          editFacility:true,
+          deleteFacility: true,
+          editFacility: true,
           isReady: true,
-          // dbCollection: "users",
           dbCollection: "payments",
           accessLevel: "A",
         },
-        // {
-        //   name: "Calculations",
-        //   singularName: "Calculation",
-        //   addFacility: true,
-        //   deleteFacility : true,
-        //   editFacility:true,
-        //   isReady: true,
-        //   // dbCollection: "users",
-        //   dbCollection: "calculations",
-        //   accessLevel: "A",
-        // },
         {
           name: "Bills",
           singularName: "Bill",
           addFacility: true,
-          deleteFacility : false,
-          editFacility:false,
+          deleteFacility: false,
+          editFacility: false,
           isReady: true,
-          // dbCollection: "users",
           dbCollection: "bills",
           accessLevel: "A",
         },
@@ -112,8 +96,8 @@ export default function MainPage() {
           singularName: "User",
           dbCollection: "users",
           addFacility: true,
-          deleteFacility : true,
-          editFacility:true,
+          deleteFacility: true,
+          editFacility: true,
           accessLevel: "A",
         },
         {
@@ -121,8 +105,17 @@ export default function MainPage() {
           singularName: "Role",
           dbCollection: "roles",
           addFacility: true,
-          deleteFacility : true,
-          editFacility:true,
+          deleteFacility: true,
+          editFacility: true,
+          accessLevel: "A",
+        },
+        {
+          name: "MilkRates",
+          singularName: "MilkRate",
+          dbCollection: "roles",
+          addFacility: true,
+          deleteFacility: true,
+          editFacility: false,
           accessLevel: "A",
         },
       ],
@@ -136,16 +129,18 @@ export default function MainPage() {
           singularName: "Activity",
           dbCollection: "activities",
           addFacility: false,
-          deleteFacility : true,
-          editFacility:true,
+          deleteFacility: true,
+          editFacility: true,
           accessLevel: "A",
         },
       ],
     },
   ];
+
   useEffect(() => {
     setSession();
   }, []);
+
   async function setSession() {
     setFlagLoad(true);
     try {
@@ -153,7 +148,6 @@ export default function MainPage() {
         import.meta.env.VITE_API_URL + "/specials/welcome"
       );
       if (response.data.role != "new" && response.data.role != "guest") {
-        // user is alreay logged in and has refreshed the page
         setUser(response.data);
       }
     } catch (error) {
@@ -161,6 +155,7 @@ export default function MainPage() {
     }
     setFlagLoad(false);
   }
+
   function showMessage(message) {
     setMessage(message);
     window.setTimeout(() => {
@@ -169,7 +164,11 @@ export default function MainPage() {
   }
 
   function handleEntityClick(selectedIndex) {
-    // user clicked to same entity again, so unselect it
+    if (!user) {
+      showMessage("Please log in to access this option.");
+      return;
+    }
+
     console.log(menus[selectedMenuIndex].entities[selectedIndex].name);
 
     if (
@@ -181,15 +180,17 @@ export default function MainPage() {
       setView("home");
       return;
     }
-    // console.log("selectedEntity.name" , selectedEntity.name);
     setSelectedEntityIndex(selectedIndex);
     setSelectedEntity(menus[selectedMenuIndex].entities[selectedIndex]);
     setView("content");
   }
 
-
-
   function handleSideBarMenuClick(index) {
+    if (!user) {
+      showMessage("Please log in to access menu options.");
+      return;
+    }
+
     if (selectedMenuIndex == index) {
       setSelectedMenuIndex(-1);
     } else {
@@ -197,36 +198,34 @@ export default function MainPage() {
     }
     setSelectedEntityIndex(-1);
     setSelectedEntity("");
-    setView("home");
   }
-  function handleToggleSidebar() {
-    console.log(flagToggleButton);
-    let flag = flagToggleButton;
-    flag = !flag;
-    setFlagToggleButton(flag);
-  }
+
   function handleLogInSignupButtonClick() {
     setView("loginSignup");
   }
+
   async function setLoggedinUser(loggedinUser) {
-    console.log(loggedinUser);
     setView("home");
-    // get access level of this user
-    // let response = await axios.get(
-    //   "http://localhost:3000/roles/" + loggedinUser.roleId
-    // );
-    // loggedinUser.level = response.data.level;
     setUser(loggedinUser);
   }
+
   function handleSignoutClick() {
     setUser("");
     setView("home");
-    // remove jwt token from backend
-    let response = axios.post(import.meta.env.VITE_API_URL + "/users/signout");
+    axios.post(import.meta.env.VITE_API_URL + "/users/signout");
   }
+
   function handleCloseLoginSignupPageClose() {
     setView("home");
   }
+
+  function handleBackToHome() {
+    setView("home");
+    setSelectedMenuIndex(-1); 
+    setSelectedEntityIndex(-1); 
+    setSelectedEntity(""); 
+  }
+
   if (flagLoad) {
     return (
       <div className="my-5 text-center">
@@ -234,46 +233,105 @@ export default function MainPage() {
       </div>
     );
   }
+
   return (
     <>
-      <div className="row justify-content-center p-4">
-        {true && (
-          <div className="col-2 ">
-            <SideBar
-              user={user}
-              menus={menus}
-              flagToggleButton={flagToggleButton}
-              selectedMenuIndex={selectedMenuIndex}
-              selectedEntityIndex={selectedEntityIndex}
-              onEntityClick={handleEntityClick}
-              onSideBarMenuClick={handleSideBarMenuClick}
-              onToggleSidebar={handleToggleSidebar}
-              onLogInSignupButtonClick={handleLogInSignupButtonClick}
-              onSignoutClick={handleSignoutClick}
-            />
-          </div>
-        )}
-        {/* <div className="col-10 ">
-        <NavBar />
-      </div> */}
-        <div className={flagToggleButton ? "col-10" : "col-12"}>
-          {message && (
-            <div className="text-center bg-danger text-white w-50 mx-auto mb-2 p-1">
-              {message.toUpperCase()}
+      {message && (
+        <div className="text-center bg-danger text-white w-50 mx-auto mb-2 p-1">
+          {message.toUpperCase()}
+        </div>
+      )}
+      {view === "home" ? (
+        <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 bg-gradient-primary-light p-3">
+          <div className="col-lg-5 col-md-7 col-sm-9 p-4 bg-white rounded-3 shadow-lg text-center animate__animated animate__fadeInDown">
+            
+            {user && (
+              <div className="mb-4 fs-5 text-dark">
+                Welcome, <span className="fw-semibold text-success">{user.name}</span>!
+              </div>
+            )}
+
+            <div className="mb-5 d-flex justify-content-center flex-wrap">
+              {!user && (
+                <button
+                  className="btn btn-primary btn-lg px-4 me-3 shadow-sm animate__animated animate__pulse animate__infinite" // Added animation
+                  onClick={handleLogInSignupButtonClick}
+                >
+                  Login / Signup
+                </button>
+              )}
+              {user && (
+                <button
+                  className="btn btn-outline-danger btn-lg px-4 shadow-sm"
+                  onClick={handleSignoutClick}
+                >
+                  Signout
+                </button>
+              )}
             </div>
-          )}
-          {view == "home" && <HomePage user={user} />}
-          {!user && view == "loginSignup" && (
+
+            <ul className="list-unstyled text-start">
+              {menus.map((menu, menuIndex) => (
+                <li key={menuIndex} className="mb-3">
+                  <button
+                    className={`btn w-100 text-start py-3 fs-5 d-flex align-items-center justify-content-between ${
+                      selectedMenuIndex === menuIndex ? "btn-info text-white shadow-sm" : "btn-outline-primary menu-btn-hover" // Added custom class for hover
+                    }`}
+                    onClick={() => handleSideBarMenuClick(menuIndex)}
+                    disabled={!user}
+                  >
+                    <span>{menu.name}</span>
+                    <span className="ms-auto">
+                      {selectedMenuIndex === menuIndex ? (
+                        <i className="bi bi-chevron-up"></i> 
+                      ) : (
+                        <i className="bi bi-chevron-down"></i> 
+                      )}
+                    </span>
+                  </button>
+                  {selectedMenuIndex === menuIndex && (
+                    <ul className="list-unstyled ps-4 mt-2 border-start border-primary ms-2 pt-2 pb-1 rounded-sm bg-light animate__animated animate__fadeInLeft"> {/* Added animation */}
+                      {menu.entities.map((entity, entityIndex) => (
+                        <li key={entityIndex} className="mb-2">
+                          <button
+                            className={`btn w-100 text-start btn-md ${
+                              selectedEntityIndex === entityIndex
+                                ? "btn-secondary text-white shadow-sm"
+                                : "btn-outline-dark menu-btn-hover" 
+                            }`}
+                            onClick={() => handleEntityClick(entityIndex)}
+                            disabled={!user}
+                          >
+                            {entity.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <div className="container-fluid py-4">
+          {view === "loginSignup" && !user && (
             <LoginSignupPage
               setLoggedinUser={setLoggedinUser}
               onCloseLoginSignupPageClose={handleCloseLoginSignupPageClose}
+              onBack={handleBackToHome}
             />
           )}
-          {view == "content" && (
-            <ContentPage selectedEntity={selectedEntity} user={user} />
+
+          {view === "content" && (
+            <ContentPage
+              selectedEntity={selectedEntity}
+              user={user}
+              onBack={handleBackToHome}
+            />
           )}
         </div>
-      </div>
+      )}
     </>
   );
 }

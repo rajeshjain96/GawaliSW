@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import {
   CommonUtilityBar,
@@ -142,6 +143,7 @@ export default function Bills(props) {
             _id: user._id,
             userId: user._id,
             name: user.name,
+            mobileNumber: user.mobileNumber,
             totalDelivered: totalDelivered,
             totalMonthlyAmount: calculatedTotalMonthlyAmount,
             updateDate: effectiveUpdateDate,
@@ -472,24 +474,60 @@ export default function Bills(props) {
     showMessage(`Opening Bill Share for ID: ${billId}`);
   };
 
-  const shareBillViaWhatsApp = (bill) => {
-    if (bill) {
+  const shareBillViaWhatsApp = async (bill) => {
+    console.log(bill , "bill .... ");
+
+    const billPayload = {
+      name: bill.name,
+      mobileNumber: bill.mobileNumber,
+      totalDelivered: bill.totalDelivered,
+      totalMonthlyAmount: bill.totalMonthlyAmount,
+      userId: bill.userId,
+      updateDate: bill.updateDate
+    };
+
+    try {
+      const res = await axios.post(
+        import.meta.env.VITE_API_URL + "/bills",
+        billPayload
+      );
+
+      const billLink = `${import.meta.env.VITE_API_URL}/bill/${res.data._id}`;
+      console.log(billLink , "Billlinkkkkkk");
+
       const { name, totalDelivered, totalMonthlyAmount } = bill;
       const messageText = `Monthly Bill Details for ${name} (${selectedMonth}/${selectedYear}):\n` +
                          `Total Delivered Units: ${totalDelivered}\n` +
-                         `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n` ;
+                         `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n  ,here is your bill for ${billLink}`;
 
       const encodedMessage = encodeURIComponent(messageText);
-      const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+      const whatsappUrl = `https://wa.me/${bill.mobileNumber}?text=${encodedMessage}`;
 
       window.open(whatsappUrl, '_blank');
       showMessage(`Sharing bill for ${name} via WhatsApp.`);
-    } else {
-      showMessage("Could not find bill details for WhatsApp sharing.");
+
     }
+    catch(err){
+      console.error("Error generating or sharing bill:", err);
+      alert("Failed to share bill. Please try again.");
+    }
+    // if (bill) {
+    //   const { name, totalDelivered, totalMonthlyAmount } = bill;
+    //   const messageText = `Monthly Bill Details for ${name} (${selectedMonth}/${selectedYear}):\n` +
+    //                      `Total Delivered Units: ${totalDelivered}\n` +
+    //                      `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n` ;
+
+    //   const encodedMessage = encodeURIComponent(messageText);
+    //   const whatsappUrl = `https://wa.me/${bill.mobileNumber}?text=${encodedMessage}`;
+
+    //   window.open(whatsappUrl, '_blank');
+    //   showMessage(`Sharing bill for ${name} via WhatsApp.`);
+    // } else {
+    //   showMessage("Could not find bill details for WhatsApp sharing.");
+    // }
     setAction("list");
-    setShowBillShare(false);
-    setShowBillFormForView(false);
+    // setShowBillShare(false);
+    // setShowBillFormForView(false);
   };
 
   const handleCloseBillShare = () => {
@@ -551,7 +589,6 @@ export default function Bills(props) {
         </div>
       )}
 
-      {/* Render BillShare component only if showBillShare is true */}
       {showBillShare && billIdToShare && (
         <BillShare
           billId={billIdToShare}
@@ -561,7 +598,6 @@ export default function Bills(props) {
         />
       )}
 
-      {/* Render the list/table section only if showListContent is true */}
       {showListContent && (
         <>
           {filteredBillList.length === 0 && billList.length !== 0 && (
@@ -685,7 +721,6 @@ export default function Bills(props) {
         </>
       )}
 
-      {/* Modal Import - remains unchanged */}
       {flagImport && (
         <ModalImport
           modalText={"Summary of Bulk Import"}
@@ -700,4 +735,3 @@ export default function Bills(props) {
     </>
   );
 }
-

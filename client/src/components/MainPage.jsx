@@ -6,8 +6,8 @@ import { BeatLoader } from "react-spinners";
 
 export default function MainPage() {
   let [selectedEntity, setSelectedEntity] = useState("");
-  let [user, setUser] = useState(""); 
-  let [view, setView] = useState("home"); 
+  let [user, setUser] = useState("");
+  let [view, setView] = useState("home");
   let [flagLoad, setFlagLoad] = useState(false);
   let [message, setMessage] = useState("");
   let [selectedMenuIndex, setSelectedMenuIndex] = useState(-1);
@@ -221,9 +221,8 @@ export default function MainPage() {
 
   function handleBackToHome() {
     setView("home");
-    setSelectedMenuIndex(-1); 
-    setSelectedEntityIndex(-1); 
-    setSelectedEntity(""); 
+    setSelectedEntityIndex(-1);
+    setSelectedEntity("");
   }
 
   if (flagLoad) {
@@ -244,10 +243,10 @@ export default function MainPage() {
       {view === "home" ? (
         <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 bg-gradient-primary-light p-3">
           <div className="col-lg-5 col-md-7 col-sm-9 p-4 bg-white rounded-3 shadow-lg text-center animate__animated animate__fadeInDown">
-            
             {user && (
               <div className="mb-4 fs-5 text-dark">
-                Welcome, <span className="fw-semibold text-success">{user.name}</span>!
+                Welcome,{" "}
+                <span className="fw-semibold text-success">{user.name}</span>!
               </div>
             )}
 
@@ -275,7 +274,9 @@ export default function MainPage() {
                 <li key={menuIndex} className="mb-3">
                   <button
                     className={`btn w-100 text-start py-3 fs-5 d-flex align-items-center justify-content-between ${
-                      selectedMenuIndex === menuIndex ? "btn-info text-white shadow-sm" : "btn-outline-primary menu-btn-hover" // Added custom class for hover
+                      selectedMenuIndex === menuIndex
+                        ? "btn-info text-white shadow-sm"
+                        : "btn-outline-primary menu-btn-hover"
                     }`}
                     onClick={() => handleSideBarMenuClick(menuIndex)}
                     disabled={!user}
@@ -283,21 +284,23 @@ export default function MainPage() {
                     <span>{menu.name}</span>
                     <span className="ms-auto">
                       {selectedMenuIndex === menuIndex ? (
-                        <i className="bi bi-chevron-up"></i> 
+                        <i className="bi bi-chevron-up"></i>
                       ) : (
-                        <i className="bi bi-chevron-down"></i> 
+                        <i className="bi bi-chevron-down"></i>
                       )}
                     </span>
                   </button>
                   {selectedMenuIndex === menuIndex && (
-                    <ul className="list-unstyled ps-4 mt-2 border-start border-primary ms-2 pt-2 pb-1 rounded-sm bg-light animate__animated animate__fadeInLeft"> {/* Added animation */}
+                    <ul className="list-unstyled ps-4 mt-2 border-start border-primary ms-2 pt-2 pb-1 rounded-sm bg-light animate__animated animate__fadeInLeft">
+                      {" "}
+                      {/* Added animation */}
                       {menu.entities.map((entity, entityIndex) => (
                         <li key={entityIndex} className="mb-2">
                           <button
                             className={`btn w-100 text-start btn-md ${
                               selectedEntityIndex === entityIndex
                                 ? "btn-secondary text-white shadow-sm"
-                                : "btn-outline-dark menu-btn-hover" 
+                                : "btn-outline-dark menu-btn-hover"
                             }`}
                             onClick={() => handleEntityClick(entityIndex)}
                             disabled={!user}

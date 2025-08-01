@@ -82,42 +82,42 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
     }
   }, [billId, selectedMonth, selectedYear]); 
 
-  const shareBill = () => {
-    if (!selectedCustomer || !monthlySummary || dailyEntries.length === 0) {
-      alert("Bill data not fully loaded yet. Please wait or try again.");
-      return;
-    }
+  // const shareBill = () => {
+  //   if (!selectedCustomer || !monthlySummary || dailyEntries.length === 0) {
+  //     alert("Bill data not fully loaded yet. Please wait or try again.");
+  //     return;
+  //   }
 
-    let message = `*|| Shree ||*\n`;
-    message += `*The Dairy Shop*\n`;
-    message += `220, Market yard, Pune - 411009\n`;
-    message += `Date: ${todayStr}\n\n`;
-    message += `*Customer Name:* ${selectedCustomer.name || 'N/A'}\n`;
-    message += `*Phone number:* ${selectedCustomer.mobileNumber || 'N/A'}\n\n`;
-    message += `*Monthly Milk Delivery - ${parseInt(selectedMonth)}/${selectedYear}*\n\n`;
+  //   let message = `*|| Shree ||*\n`;
+  //   message += `*The Dairy Shop*\n`;
+  //   message += `220, Market yard, Pune - 411009\n`;
+  //   message += `Date: ${todayStr}\n\n`;
+  //   message += `*Customer Name:* ${selectedCustomer.name || 'N/A'}\n`;
+  //   message += `*Phone number:* ${selectedCustomer.mobileNumber || 'N/A'}\n\n`;
+  //   message += `*Monthly Milk Delivery - ${parseInt(selectedMonth)}/${selectedYear}*\n\n`;
 
-    const daysInMonth = new Date(
-      parseInt(selectedYear),
-      parseInt(selectedMonth),  
-      0
-    ).getDate();
+  //   const daysInMonth = new Date(
+  //     parseInt(selectedYear),
+  //     parseInt(selectedMonth),  
+  //     0
+  //   ).getDate();
 
-    for (let i = 1; i <= daysInMonth; i++) {
-        const dateStr = `${selectedYear}-${selectedMonth}-${String(i).padStart(2, "0")}`;
-        const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr) && e.userId === billId);
-        const quantity = entry ? parseFloat(entry.qty_delivered || entry.delivered_qty) : 0;
-        message += `${String(i).padStart(2, "0")}: ${!isNaN(quantity) && quantity > 0 ? quantity.toFixed(1) + "L" : "✕"} `;
-        if (i % 5 === 0) message += `\n`;
-    }
-    message += `\n`;
+  //   for (let i = 1; i <= daysInMonth; i++) {
+  //       const dateStr = `${selectedYear}-${selectedMonth}-${String(i).padStart(2, "0")}`;
+  //       const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr) && e.userId === billId);
+  //       const quantity = entry ? parseFloat(entry.qty_delivered || entry.delivered_qty) : 0;
+  //       message += `${String(i).padStart(2, "0")}: ${!isNaN(quantity) && quantity > 0 ? quantity.toFixed(1) + "L" : "✕"} `;
+  //       if (i % 5 === 0) message += `\n`;
+  //   }
+  //   message += `\n`;
 
-    message += `*Summary:*\n`;
-    message += `Total Milk: ${monthlySummary.totalDelivered.toFixed(2)} Litres\n`;
-    message += `*Total Amount: Rs. ${monthlySummary.totalMonthlyAmount.toFixed(2)} /-*`; 
+  //   message += `*Summary:*\n`;
+  //   message += `Total Milk: ${monthlySummary.totalDelivered.toFixed(2)} Litres\n`;
+  //   message += `*Total Amount: Rs. ${monthlySummary.totalMonthlyAmount.toFixed(2)} /-*`; 
 
-    const whatsappUrl = `https://wa.me/${selectedCustomer.mobileNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-  };
+  //   const whatsappUrl = `https://wa.me/${selectedCustomer.mobileNumber}?text=${encodeURIComponent(message)}`;
+  //   window.open(whatsappUrl, "_blank");
+  // };
 
   if (loading) {
     return (
@@ -240,11 +240,11 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
           </div>
         </div>
 
-        <div className="text-center mt-4">
+        {/* <div className="text-center mt-4">
           <button className="btn btn-success px-4 py-2" onClick={shareBill}>
             Send via WhatsApp
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

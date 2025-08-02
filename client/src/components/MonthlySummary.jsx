@@ -1,101 +1,97 @@
+// MonthlySummary.jsx
 import axios from "axios";
 
-export async function getMonthlySummary() {
-    
-    const [entriesRes, milkRatesRes] = await Promise.all([
-        axios.get(import.meta.env.VITE_API_URL + "/entries"),
-        axios.get(import.meta.env.VITE_API_URL + "/milkrates")
-    ]);
+// This function now expects year, month, and userList as arguments
+export async function getMonthlySummary(year, month, userList) { // <-- Added userList
+    try {
+        const url = import.meta.env.VITE_API_URL;
 
-    const entries = entriesRes.data;
-    let milkRates = milkRatesRes.data; 
-
-    const summaryMap = {};
-
-    milkRates.sort((a, b) => {
-        const dateA = new Date(a.from);
-        const dateB = new Date(b.from);
-
-        if (isNaN(dateA.getTime())) return 1;
-        if (isNaN(dateB.getTime())) return -1; 
-
-        return dateA - dateB;
-    });
-
-    entries.forEach((entry) => {
-       
-        const delivered = parseFloat(entry.delivered_qty);
-        if (isNaN(delivered)) {
-            console.warn(`Skipping entry due to non-numeric delivered_qty:`, entry);
-            return;
+        if (!year || !month || isNaN(parseInt(year)) || isNaN(parseInt(month))) {
+            console.error("getMonthlySummary: Invalid year or month provided.", { year, month });
+            return [];
         }
 
-        const entryDateStr = entry.date; 
-        if (!entryDateStr) {
-            console.warn(`Skipping entry due to missing date:`, entry);
-            return; 
-        }
-        const entryDate = new Date(entryDateStr);
-        if (isNaN(entryDate.getTime())) {
-            console.warn(`Skipping entry due to invalid date format: ${entryDateStr}`, entry);
-            return;
-        }
+        const [entriesRes, milkRatesRes] = await Promise.all([
+            // Use the correct endpoint as per your backend route setup
+            // This assumes you have `router.get("/monthly/:year/:month", ...)` in entry.router.js
+            axios.get(`${url}/entries/${year}/${month}`),
+            axios.get(`${url}/milkrates`)
+        ]);
 
+        const entries = entriesRes.data || [];
+        let milkRates = milkRatesRes.data || [];
 
-        const month = entryDateStr.substring(0, 7); 
-        const userId = entry.userId;
-        const key = `${userId}_${month}`; 
+        const summaryMap = {};
 
+        milkRates.sort((a, b) => {
+            const dateA = new Date(a.from);
+            const dateB = new Date(b.from);
+            if (isNaN(dateA.getTime())) return 1;
+            if (isNaN(dateB.getTime())) return -1;
+            return dateA - dateB;
+        });
 
-        let applicableRate = 0; 
-        let foundRate = null;   
+        entries.forEach((entry) => {
+            const delivered = parseFloat(entry.delivered_qty);
+            if (isNaN(delivered)) return;
 
-        for (let i = 0; i < milkRates.length; i++) {
-            const currentRate = milkRates[i];
- 
-            const currentRateDate = new Date(currentRate.from);
+            const entryDateStr = entry.date;
+            if (!entryDateStr) return;
+            const entryDate = new Date(entryDateStr);
+            if (isNaN(entryDate.getTime())) return;
 
-            if (isNaN(currentRateDate.getTime())) {
-                console.warn(`Invalid rate date found in milkRates: ${currentRate.from}`, currentRate);
-                continue; 
+            const userId = entry.userId;
+            // --- CRITICAL CHANGE HERE: Get name from userList ---
+            const user = userList.find(u => u._id === userId);
+            const name = user ? user.name : 'Unknown User'; // Default to 'Unknown User' if not found
+            // --- END CRITICAL CHANGE ---
+
+            let applicableRate = 0;
+            let foundRate = null;
+
+            for (let i = 0; i < milkRates.length; i++) {
+                const currentRate = milkRates[i];
+                const currentRateDate = new Date(currentRate.from);
+                if (isNaN(currentRateDate.getTime())) continue;
+                if (currentRateDate <= entryDate) {
+                    foundRate = currentRate;
+                } else break;
             }
 
-            if (currentRateDate <= entryDate) {
-                foundRate = currentRate;
-            } else {
-               
-                break;
+            if (foundRate) {
+                applicableRate = parseFloat(foundRate.rate) || 0;
+                if (isNaN(applicableRate)) {
+                    applicableRate = 0;
+                }
             }
-        }
 
-        if (foundRate) {
-           
-            applicableRate = parseFloat(foundRate.rate) || 0;
-            if (isNaN(applicableRate)) {
-                 console.warn(`Invalid rate value for date: ${entryDateStr}. Found: ${foundRate.rate}. Using rate of 0.`);
-                 applicableRate = 0;
+            const MonthlyAmount = applicableRate * delivered;
+
+            if (!summaryMap[userId]) {
+                summaryMap[userId] = {
+                    userId,
+                    name: name, // Use the name found from userList
+                    month: `${year}-${month.toString().padStart(2, '0')}`,
+                    totalDelivered: 0,
+                    totalMonthlyAmount: 0,
+                };
             }
-        } else {
-            console.warn(`No applicable milk rate found for date: ${entryDateStr}. Using rate of 0.`);
-            
-        }
 
-        const MonthlyAmount = applicableRate * delivered;
-        if (!summaryMap[key]) {
-            summaryMap[key] = {
-                userId,
-                name: entry.name, 
-                month,
-                totalDelivered: 0,
-                totalMonthlyAmount: 0,
-            };
-        }
+            summaryMap[userId].totalDelivered += delivered;
+            summaryMap[userId].totalMonthlyAmount += MonthlyAmount;
+        });
 
-        summaryMap[key].totalDelivered += delivered;
-        summaryMap[key].totalMonthlyAmount += MonthlyAmount;
-    });
+        // Ensure names are strings for sorting
+        return Object.values(summaryMap).sort((a, b) => {
+            const nameA = String(a.name || ''); // Ensure it's a string, even if default
+            const nameB = String(b.name || ''); // Ensure it's a string, even if default
+            return nameA.localeCompare(nameB);
+        });
 
-    return Object.values(summaryMap).sort((a, b) => a.month.localeCompare(b.month));
+    } catch (err) {
+        console.error("Error in getMonthlySummary:", err);
+        return [];
+    }
 }
 
 
@@ -107,90 +103,3 @@ export async function getMonthlySummary() {
 
 
 
-
-
-
-// import axios from "axios";
-
-// export async function getMonthlySummary() {
-//   const res = await axios.get(import.meta.env.VITE_API_URL + "/entries");
-//   const entries = res.data;
-//   const summaryMap = {};
-
-//   entries.forEach((entry) => {
-//     if (!entry.delivered_qty || isNaN(entry.delivered_qty)) return;
-
-//     const month = entry.date?.substring(0, 7);
-//     const userId = entry.userId;
-//     const key = `${userId}_${month}`;
-//     const delivered = parseFloat(entry.delivered_qty);
-//     const MonthlyAmount = 60 * delivered;
-
-//     if (!summaryMap[key]) {
-//       summaryMap[key] = {
-//         userId,
-//         name: entry.name,
-//         month,
-//         totalDelivered: 0,
-//         totalMonthlyAmount: 0,
-//       };
-//     }
-
-//     summaryMap[key].totalDelivered += delivered;
-//     summaryMap[key].totalMonthlyAmount += MonthlyAmount;
-//   });
-
-//   return Object.values(summaryMap).sort((a, b) => a.month.localeCompare(b.month));
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // // utils/calculateMonthlySummary.js
-// // import axios from "axios";
-
-// // export async function getMonthlySummary() {
-// //   const res = await axios.get(import.meta.env.VITE_API_URL + "/entries");
-// //   const entries = res.data;
-// //   const summaryMap = {};
-
-// //   entries.forEach((entry) => {
-// //     if (!entry.delivered_qty || isNaN(entry.delivered_qty)) return;
-
-// //     const month = entry.date?.substring(0, 7);
-// //     const userId = entry.userId;
-// //     const key = `${userId}_${month}`;
-// //     const delivered = parseFloat(entry.delivered_qty);
-// //     const MonthlyAmount = 60 * delivered;
-
-// //     if (!summaryMap[key]) {
-// //       summaryMap[key] = {
-// //         userId,
-// //         name: entry.name,
-// //         month,
-// //         totalDelivered: 0,
-// //         totalMonthlyAmount: 0,
-// //       };
-// //     }
-
-// //     summaryMap[key].totalDelivered += delivered;
-// //     summaryMap[key].totalMonthlyAmount += MonthlyAmount;
-// //   });
-
-// //   return Object.values(summaryMap).sort((a, b) => a.month.localeCompare(b.month));
-// // }

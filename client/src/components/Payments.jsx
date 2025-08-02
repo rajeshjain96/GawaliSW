@@ -16,7 +16,7 @@ import {
 } from "../external/vite-sdk";
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 import PaymentForm from "./PaymentForm";
-import { getMonthlySummary } from './MonthlySummary';
+import { getMonthlySummary } from "./MonthlySummary";
 
 export default function Payments(props) {
   let [paymentList, setPaymentList] = useState([]);
@@ -52,7 +52,7 @@ export default function Payments(props) {
     { attribute: "totalMonthlyAmount", type: "normal" },
     { attribute: "paidAmount", type: "normal" },
     { attribute: "balanceAmount", type: "normal" },
-    { attribute: "payment_mode", type: "normal" }, // Added payment_mode to schema
+    { attribute: "payment_mode", type: "normal" },
   ];
 
   let paymentValidations = {
@@ -61,7 +61,7 @@ export default function Payments(props) {
     totalMonthlyAmount: { message: "", onlyDigits: true },
     paidAmount: { message: "", onlyDigits: true },
     balanceAmount: { message: "", onlyDigits: true },
-    payment_mode: { message: "" }, // Added validation for payment_mode
+    payment_mode: { message: "" },
   };
 
   let [showInList, setShowInList] = useState(getShowInList(paymentSchema));
@@ -74,7 +74,7 @@ export default function Payments(props) {
     totalMonthlyAmount: 0,
     paidAmount: null,
     balanceAmount: 0,
-    payment_mode: "", // Default payment mode to Cash
+    payment_mode: "",
   });
 
   useEffect(() => {
@@ -85,17 +85,38 @@ export default function Payments(props) {
     setFlagLoad(true);
     try {
       const [userRes, paymentRes] = await Promise.all([
-        axios(import.meta.env.VITE_API_URL + "/users"),
+        axios(import.meta.env.VITE_API_URL + "/users"), // This fetches user data
         axios(import.meta.env.VITE_API_URL + "/payments"),
       ]);
-      const userList = userRes.data;
+
+      // --- CRITICAL CHANGE HERE ---
+      // Ensure userList is an array, default to empty array if userRes.data is null or undefined
+      const userList = userRes.data || [];
+      // --- END CRITICAL CHANGE ---
+
       const paymentListRaw = paymentRes.data;
 
-      const allMonthlySummaries = await getMonthlySummary();
+      const yearToFetch = parseInt(selectedYear, 10);
+      const monthToFetch = parseInt(selectedMonth, 10);
+
+      if (isNaN(yearToFetch) || isNaN(monthToFetch)) {
+        console.error(
+          "Invalid year or month selected. Cannot fetch monthly summary."
+        );
+        setFlagLoad(false);
+        return;
+      }
+
+      // Pass userList (now guaranteed to be an array)
+      const allMonthlySummaries = await getMonthlySummary(
+        yearToFetch,
+        monthToFetch,
+        userList
+      );
 
       const currentMonthYear = `${selectedYear}-${selectedMonth}`;
 
-      const mergedList = userList
+      const mergedList = userList // This loop already uses userList
         .filter((user) => user.roleId === "68691372fa624c1dff2e06be")
         .map((user) => {
           const startDate = new Date(user.start_date);
@@ -111,7 +132,8 @@ export default function Payments(props) {
           }
 
           const userSummaryForMonth = allMonthlySummaries.find(
-            (summary) => summary.userId === user._id && summary.month === currentMonthYear
+            (summary) =>
+              summary.userId === user._id && summary.month === currentMonthYear
           );
 
           const monthlyBillRecord = paymentListRaw.find(
@@ -122,20 +144,27 @@ export default function Payments(props) {
           );
 
           let totalDelivered = userSummaryForMonth?.totalDelivered ?? 0;
-          let calculatedTotalMonthlyAmount = userSummaryForMonth?.totalMonthlyAmount ?? 0;
-          
+          let calculatedTotalMonthlyAmount =
+            userSummaryForMonth?.totalMonthlyAmount ?? 0;
+
           let paidAmount = monthlyBillRecord?.paidAmount ?? null;
           let balanceAmount;
 
           if (paidAmount !== null) {
-              balanceAmount = calculatedTotalMonthlyAmount - paidAmount;
+            balanceAmount = calculatedTotalMonthlyAmount - paidAmount;
           } else {
-              balanceAmount = calculatedTotalMonthlyAmount;
+            balanceAmount = calculatedTotalMonthlyAmount;
           }
 
-          let effectiveUpdateDate = monthlyBillRecord?.updateDate || user.updateDate || new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toISOString();
-          let paymentMode = monthlyBillRecord?.payment_mode ?? ""; // Get payment_mode or default to Cash
-
+          let effectiveUpdateDate =
+            monthlyBillRecord?.updateDate ||
+            user.updateDate ||
+            new Date(
+              parseInt(selectedYear),
+              parseInt(selectedMonth) - 1,
+              1
+            ).toISOString();
+          let paymentMode = monthlyBillRecord?.payment_mode ?? "";
 
           return {
             _id: user._id,
@@ -147,7 +176,7 @@ export default function Payments(props) {
             balanceAmount: balanceAmount,
             updateDate: effectiveUpdateDate,
             paymentId: monthlyBillRecord?._id || null,
-            payment_mode: paymentMode, // Add payment_mode to the merged record
+            payment_mode: paymentMode,
           };
         })
         .filter(Boolean);
@@ -175,16 +204,19 @@ export default function Payments(props) {
       userId: paymentForBackEnd.userId,
       name: paymentForBackEnd.name,
       date: dateForMonthlyEntry,
-      
-      paidAmount: paymentForBackEnd.paidAmount === null ? 0 : paymentForBackEnd.paidAmount,
+
+      paidAmount:
+        paymentForBackEnd.paidAmount === null
+          ? 0
+          : paymentForBackEnd.paidAmount,
       balanceAmount: paymentForBackEnd.balanceAmount,
       totalDelivered: paymentForBackEnd.totalDelivered,
       totalMonthlyAmount: paymentForBackEnd.totalMonthlyAmount,
-      payment_mode: paymentForBackEnd.payment_mode, // Add payment_mode to the payload
+      payment_mode: paymentForBackEnd.payment_mode,
     };
 
     if (!paymentForBackEnd.paymentId) {
-        monthlyPaymentPayload.payment_status = "MonthlyBill";
+      monthlyPaymentPayload.payment_status = "MonthlyBill";
     }
 
     setFlagLoad(true);
@@ -192,7 +224,9 @@ export default function Payments(props) {
       let response;
       if (paymentForBackEnd.paymentId) {
         response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/payments/${paymentForBackEnd.paymentId}`,
+          `${import.meta.env.VITE_API_URL}/payments/${
+            paymentForBackEnd.paymentId
+          }`,
           monthlyPaymentPayload,
           { headers: { "Content-type": "application/json" } }
         );
@@ -209,10 +243,11 @@ export default function Payments(props) {
       showMessage(message);
       setAction("list");
       await fetchAndProcessData();
-
     } catch (error) {
       console.error("Form submission error:", error);
-      showMessage("Something went wrong with form submission, refresh the page");
+      showMessage(
+        "Something went wrong with form submission, refresh the page"
+      );
     } finally {
       setFlagLoad(false);
     }
@@ -233,7 +268,8 @@ export default function Payments(props) {
       ...payment,
       info: payment.info || "",
     };
-    safePayment.paidAmount = safePayment.paidAmount === 0 ? null : safePayment.paidAmount;
+    safePayment.paidAmount =
+      safePayment.paidAmount === 0 ? null : safePayment.paidAmount;
     setAction("update");
     setUserToBeEdited(safePayment);
   }
@@ -258,16 +294,19 @@ export default function Payments(props) {
     setFlagLoad(true);
     try {
       if (payment.paymentId) {
-          await axios.delete(
-              `${import.meta.env.VITE_API_URL}/payments/${payment.paymentId}`
-          );
-          showMessage(`Monthly payment record for ${payment.name} deleted successfully.`);
+        await axios.delete(
+          `${import.meta.env.VITE_API_URL}/payments/${payment.paymentId}`
+        );
+        showMessage(
+          `Monthly payment record for ${payment.name} deleted successfully.`
+        );
       } else {
-          showMessage(`No specific monthly payment record found for ${payment.name} to delete.`);
+        showMessage(
+          `No specific monthly payment record found for ${payment.name} to delete.`
+        );
       }
 
       await fetchAndProcessData();
-
     } catch (error) {
       console.error("Delete operation failed:", error);
       showMessage("Something went wrong during deletion, refresh the page");
@@ -315,10 +354,12 @@ export default function Payments(props) {
     setDirection(d);
     if (d === false) {
       list.sort((a, b) => {
-        const valA = a[field] !== null && a[field] !== undefined ? a[field] : '';
-        const valB = b[field] !== null && b[field] !== undefined ? b[field] : '';
+        const valA =
+          a[field] !== null && a[field] !== undefined ? a[field] : "";
+        const valB =
+          b[field] !== null && b[field] !== undefined ? b[field] : "";
 
-        if (typeof valA === 'string' && typeof valB === 'string') {
+        if (typeof valA === "string" && typeof valB === "string") {
           return valA.localeCompare(valB);
         }
         if (valA > valB) {
@@ -331,10 +372,12 @@ export default function Payments(props) {
       });
     } else {
       list.sort((a, b) => {
-        const valA = a[field] !== null && a[field] !== undefined ? a[field] : '';
-        const valB = b[field] !== null && b[field] !== undefined ? b[field] : '';
+        const valA =
+          a[field] !== null && a[field] !== undefined ? a[field] : "";
+        const valB =
+          b[field] !== null && b[field] !== undefined ? b[field] : "";
 
-        if (typeof valA === 'string' && typeof valB === 'string') {
+        if (typeof valA === "string" && typeof valB === "string") {
           return valB.localeCompare(valA);
         }
         if (valA < valB) {
@@ -409,7 +452,9 @@ export default function Payments(props) {
           if (
             paymentList[i][parameterName] !== undefined &&
             paymentList[i][parameterName] !== null &&
-            String(paymentList[i][parameterName]).toLowerCase().includes(query.toLowerCase())
+            String(paymentList[i][parameterName])
+              .toLowerCase()
+              .includes(query.toLowerCase())
           ) {
             fList.push(paymentList[i]);
             break;
@@ -541,7 +586,9 @@ export default function Payments(props) {
                 const month = String(i + 1).padStart(2, "0");
                 return (
                   <option key={month} value={month}>
-                    {new Date(0, i).toLocaleString("default", { month: "long" })}
+                    {new Date(0, i).toLocaleString("default", {
+                      month: "long",
+                    })}
                   </option>
                 );
               })}
@@ -555,9 +602,9 @@ export default function Payments(props) {
               onChange={(e) => setSelectedYear(e.target.value)}
             >
               {Array.from({ length: 5 }, (_, i) => {
-                const year = today.getFullYear() - 2 + i;
+                const year = currentYear - 2 + i;
                 return (
-                  <option key={year} value={year}>
+                  <option key={year} value={year} disabled={year > currentYear}>
                     {year}
                   </option>
                 );
@@ -620,10 +667,7 @@ export default function Payments(props) {
       {action === "list" &&
         filteredPaymentList.length !== 0 &&
         filteredPaymentList.map((e, index) => (
-          <div
-            className="row mx-auto mt-2 my-1"
-            key={index}
-          >
+          <div className="row mx-auto mt-2 my-1" key={index}>
             <div className="col-12">
               <Entity
                 entity={e}
@@ -649,7 +693,7 @@ export default function Payments(props) {
           updations={recordsToBeUpdated}
           btnGroup={["Yes", "No"]}
           onModalCloseClick={handleModalCloseClick}
-          onModalButtonCancelClick={handleModalCloseClick}
+          onModalButtonCancelClick={handleModalButtonCancelClick}
           onImportButtonClick={handleImportButtonClick}
         />
       )}

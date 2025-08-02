@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   CommonUtilityBar,
@@ -17,7 +16,7 @@ import {
 } from "../external/vite-sdk";
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 import BillForm from "./BillForm";
-import { getMonthlySummary } from "./MonthlySummary";
+import { getMonthlySummary } from "./MonthlySummary"; // Correct path to getMonthlySummary
 import BillShare from "./BillShare";
 
 export default function Bills(props) {
@@ -59,14 +58,12 @@ export default function Bills(props) {
     { attribute: "name", type: "normal" },
     { attribute: "totalDelivered", type: "normal" },
     { attribute: "totalMonthlyAmount", type: "normal" },
-    // { attribute: "bill_mode", type: "normal" },
   ];
 
   let billValidations = {
     name: { message: "", mxLen: 200, mnLen: 4, onlyDigits: false },
     totalDelivered: { message: "", onlyDigits: true },
     totalMonthlyAmount: { message: "", onlyDigits: true },
-    // bill_mode: { message: "" },
   };
 
   let [showInList, setShowInList] = useState(getShowInList(billSchema));
@@ -77,7 +74,6 @@ export default function Bills(props) {
     name: "",
     totalDelivered: 0,
     totalMonthlyAmount: 0,
-    // bill_mode: "",
   });
 
   useEffect(() => {
@@ -88,13 +84,28 @@ export default function Bills(props) {
     setFlagLoad(true);
     try {
       const [userRes, billRes] = await Promise.all([
-        axios(import.meta.env.VITE_API_URL + "/users"),
+        axios(import.meta.env.VITE_API_URL + "/users"), // This fetches user data
         axios(import.meta.env.VITE_API_URL + "/bills"),
       ]);
-      const userList = userRes.data;
+
+      // --- CRITICAL CHANGES HERE ---
+      // 1. Ensure userList is an array, default to empty array if userRes.data is null or undefined
+      const userList = userRes.data || [];
       const billListRaw = billRes.data;
 
-      const allMonthlySummaries = await getMonthlySummary();
+      // 2. Parse year and month to integers
+      const yearToFetch = parseInt(selectedYear, 10);
+      const monthToFetch = parseInt(selectedMonth, 10);
+
+      if (isNaN(yearToFetch) || isNaN(monthToFetch)) {
+        console.error("Invalid year or month selected. Cannot fetch monthly summary.");
+        setFlagLoad(false);
+        return; // Exit if year or month are not valid numbers
+      }
+
+      // 3. Pass all three arguments to getMonthlySummary
+      const allMonthlySummaries = await getMonthlySummary(yearToFetch, monthToFetch, userList);
+      // --- END CRITICAL CHANGES ---
 
       const currentMonthYear = `${selectedYear}-${selectedMonth}`;
 
@@ -137,7 +148,6 @@ export default function Bills(props) {
               parseInt(selectedMonth) - 1,
               1
             ).toISOString();
-          //  let billMode = monthlyBillRecord?.bill_mode ?? "";
 
           return {
             _id: user._id,
@@ -148,7 +158,6 @@ export default function Bills(props) {
             totalMonthlyAmount: calculatedTotalMonthlyAmount,
             updateDate: effectiveUpdateDate,
             billId: monthlyBillRecord?._id || null,
-            // bill_mode: billMode,
           };
         })
         .filter(Boolean);
@@ -217,13 +226,13 @@ export default function Bills(props) {
   }
 
   function handleFormCloseClick() {
-    props.onFormCloseClick(); 
+    props.onFormCloseClick();
     setShowBillFormForView(false);
-    setAction("list"); 
+    setAction("list");
     setUserToBeEdited(null);
     setBillToView(null);
-    setShowBillShare(false); 
-    setBillIdToShare(null); 
+    setShowBillShare(false);
+    setBillIdToShare(null);
   }
 
   function handleListClick() {
@@ -469,13 +478,13 @@ export default function Bills(props) {
   const openBillShareModal = (billId) => {
     setBillIdToShare(billId);
     setShowBillShare(true);
-    setAction("share"); 
-    setShowBillFormForView(false); 
+    setAction("share");
+    setShowBillFormForView(false);
     showMessage(`Opening Bill Share for ID: ${billId}`);
   };
 
   const shareBillViaWhatsApp = async (bill) => {
-    console.log(bill , "bill .... ");
+    console.log(bill, "bill .... ");
 
     const billPayload = {
       name: bill.name,
@@ -483,7 +492,7 @@ export default function Bills(props) {
       totalDelivered: bill.totalDelivered,
       totalMonthlyAmount: bill.totalMonthlyAmount,
       userId: bill.userId,
-      updateDate: bill.updateDate
+      updateDate: bill.updateDate,
     };
 
     try {
@@ -493,47 +502,30 @@ export default function Bills(props) {
       );
 
       const billLink = `${import.meta.env.VITE_API_URL}/bill/${res.data._id}`;
-      console.log(billLink , "Billlinkkkkkk");
+      console.log(billLink, "Billlinkkkkkk");
 
       const { name, totalDelivered, totalMonthlyAmount } = bill;
-      const messageText = `Monthly Bill Details for ${name} (${selectedMonth}/${selectedYear}):\n` +
-                         `Total Delivered Units: ${totalDelivered}\n` +
-                         `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n  ,here is your bill for ${billLink}`;
+      const messageText =
+        `Monthly Bill Details for ${name} (${selectedMonth}/${selectedYear}):\n` +
+        `Total Delivered Units: ${totalDelivered}\n` +
+        `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n ,here is your bill for ${billLink}`;
 
       const encodedMessage = encodeURIComponent(messageText);
       const whatsappUrl = `https://wa.me/${bill.mobileNumber}?text=${encodedMessage}`;
 
-      window.open(whatsappUrl, '_blank');
+      window.open(whatsappUrl, "_blank");
       showMessage(`Sharing bill for ${name} via WhatsApp.`);
-
-    }
-    catch(err){
+    } catch (err) {
       console.error("Error generating or sharing bill:", err);
       alert("Failed to share bill. Please try again.");
     }
-    // if (bill) {
-    //   const { name, totalDelivered, totalMonthlyAmount } = bill;
-    //   const messageText = `Monthly Bill Details for ${name} (${selectedMonth}/${selectedYear}):\n` +
-    //                      `Total Delivered Units: ${totalDelivered}\n` +
-    //                      `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n` ;
-
-    //   const encodedMessage = encodeURIComponent(messageText);
-    //   const whatsappUrl = `https://wa.me/${bill.mobileNumber}?text=${encodedMessage}`;
-
-    //   window.open(whatsappUrl, '_blank');
-    //   showMessage(`Sharing bill for ${name} via WhatsApp.`);
-    // } else {
-    //   showMessage("Could not find bill details for WhatsApp sharing.");
-    // }
     setAction("list");
-    // setShowBillShare(false);
-    // setShowBillFormForView(false);
   };
 
   const handleCloseBillShare = () => {
     setShowBillShare(false);
     setBillIdToShare(null);
-    setAction("list"); 
+    setAction("list");
   };
 
   const handleBillButtonClick = (bill) => {
@@ -572,7 +564,6 @@ export default function Bills(props) {
         onClearSelectedFile={handleClearSelectedFile}
       />
 
-      {/* Render BillForm only if action is 'add' or 'update' OR showBillFormForView is true */}
       {(action === "add" || action === "update" || showBillFormForView) && (
         <div className="row">
           <BillForm
@@ -607,7 +598,6 @@ export default function Bills(props) {
             <div className="text-center">List is empty</div>
           )}
 
-          {/* Month/Year filters */}
           <div className="row px-3 my-2">
             <div className="col-md-3">
               <label className="form-label">Select Month</label>
@@ -636,7 +626,7 @@ export default function Bills(props) {
                 {Array.from({ length: 5 }, (_, i) => {
                   const year = today.getFullYear() - 2 + i;
                   return (
-                    <option key={year} value={year}>
+                    <option key={year} value={year} disabled={year > currentYear}>
                       {year}
                     </option>
                   );
@@ -645,7 +635,6 @@ export default function Bills(props) {
             </div>
           </div>
 
-          {/* Checkbox Headers for column visibility */}
           {filteredBillList.length !== 0 && (
             <CheckBoxHeaders
               showInList={showInList}
@@ -653,7 +642,6 @@ export default function Bills(props) {
             />
           )}
 
-          {/* List Headers for sorting */}
           {filteredBillList.length !== 0 && (
             <div className="row my-2 mx-auto p-1 border-bottom pb-2">
               <div className="col-1">
@@ -678,10 +666,10 @@ export default function Bills(props) {
                 direction={direction}
                 onHeaderClick={handleHeaderClick}
               />
+              <div className="col-1">&nbsp;</div>
             </div>
           )}
 
-          {/* List of Bills (table rows) */}
           {filteredBillList.length !== 0 &&
             filteredBillList.map((e, index) => (
               <div
@@ -705,7 +693,7 @@ export default function Bills(props) {
                 <div className="col-2 d-flex justify-content-center align-items-center gap-2">
                   <button
                     className="btn btn-sm btn-info"
-                    onClick={() => handleBillButtonClick(e)} 
+                    onClick={() => handleBillButtonClick(e)}
                   >
                     Bill
                   </button>

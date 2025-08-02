@@ -1,70 +1,127 @@
 const { app } = require("../init.js");
 const { ObjectId } = require("mongodb");
+const { normalizeNewlines } = require("./utilities/lib");
 
-async function getAllEntries() {
+function getCollectionName(year, month) {
+  const formattedMonth = String(month).padStart(2, '0');
+  return `entries_${year}_${formattedMonth}`;
+}
+
+async function getEntryCollection(year, month) {
   const db = app.locals.db;
-  const collection = db.collection("entries");
+  const collectionName = getCollectionName(year, month);
+  return db.collection(collectionName);
+}
+
+async function getAllEntries(year, month) {
+  const collection = await getEntryCollection(year, month);
   let list = await collection.find().toArray();
   return list;
 }
 
-async function getEntryById(id) {
-  const db = app.locals.db;
-  const collection = db.collection("entries");
-  const customerObj = await collection.findOne({
-    _id: ObjectId.createFromHexString(id),
-  });
-  console.log(customerObj);
-  return customerObj;
+async function getEntryById(id, year, month) {
+  const collection = await getEntryCollection(year, month);
+  let objectIdToQuery;
+  try {
+    objectIdToQuery = ObjectId.createFromHexString(id);
+  } catch (e) {
+    return null;
+  }
+  const entryObj = await collection.findOne({ _id: objectIdToQuery });
+  return entryObj;
 }
 
-async function addEntry(obj) {
-  const db = app.locals.db;
-  const collection = db.collection("entries");
-  const keys = Object.keys(obj);
-  for (let key of keys) {
+async function addEntry(obj, year, month) {
+  const collection = await getEntryCollection(year, month);
+
+  for (let key of Object.keys(obj)) {
     if (typeof obj[key] === "string") {
       obj[key] = normalizeNewlines(obj[key]);
     }
   }
+
   if (obj.date instanceof Date) {
     obj.date = obj.date.toISOString().split('T')[0];
   } else if (typeof obj.date === 'string' && obj.date.includes('T')) {
     obj.date = obj.date.split('T')[0];
   }
 
-  let result = await collection.insertOne(obj);
-  obj._id = result.insertedId;
-  return obj;
-}
-
-async function addManyEntries(entries) {
-  const db = app.locals.db;
-  const collection = db.collection("entries");
-  const processedEntries = entries.map(entry => {
-    const newEntry = { ...entry };
-    if (newEntry.date instanceof Date) {
-      newEntry.date = newEntry.date.toISOString().split('T')[0];
-    } else if (typeof newEntry.date === 'string' && newEntry.date.includes('T')) {
-      newEntry.date = newEntry.date.split('T')[0];
-    }
-    return newEntry;
+  const existingEntry = await collection.findOne({
+    userId: obj.userId,
+    date: obj.date
   });
 
-  const result = await collection.insertMany(processedEntries);
-  const insertedIds = Object.values(result.insertedIds);
-  const insertedDocs = await collection
-    .find({ _id: { $in: insertedIds } })
-    .toArray();
-  return insertedDocs;
+  if (existingEntry) {
+    const updateResult = await collection.findOneAndUpdate(
+      { _id: existingEntry._id },
+      { $set: { ...obj, updateDate: new Date() } },
+      { returnDocument: 'after' }
+    );
+    return updateResult.value;
+  } else {
+    obj.addDate = new Date();
+    obj.updateDate = new Date();
+    let result = await collection.insertOne(obj);
+    obj._id = result.insertedId;
+    return obj;
+  }
 }
 
-async function updateManyEntries(entries) {
-  const db = app.locals.db;
-  const collection = db.collection("entries");
-  const operations = entries.map((user) => {
-    const { _id, ...fieldsToUpdate } = user;
-    
+async function bulkAddOrUpdateEntries(entries, year, month) {
+  const collection = await getEntryCollection(year, month);
+  const operations = [];
+
+  for (const entry of entries) {
+    const processedEntry = { ...entry };
+
+    for (let key of Object.keys(processedEntry)) {
+      if (typeof processedEntry[key] === "string") {
+        processedEntry[key] = normalizeNewlines(processedEntry[key]);
+      }
+    }
+
+    if (processedEntry.date instanceof Date) {
+      processedEntry.date = processedEntry.date.toISOString().split('T')[0];
+    } else if (typeof processedEntry.date === 'string' && processedEntry.date.includes('T')) {
+      processedEntry.date = processedEntry.date.split('T')[0];
+    }
+
+    const fieldsToSet = { ...processedEntry };
+    delete fieldsToSet._id;
+
+    operations.push({
+      updateOne: {
+        filter: { userId: processedEntry.userId, date: processedEntry.date },
+        update: {
+          $set: { ...fieldsToSet, updateDate: new Date() },
+          $setOnInsert: { addDate: new Date() }
+        },
+        upsert: true
+      }
+    });
+  }
+
+  if (operations.length > 0) {
+    try {
+      const bulkResult = await collection.bulkWrite(operations);
+      return {
+        acknowledged: bulkResult.acknowledged,
+        insertedCount: bulkResult.upsertedCount,
+        matchedCount: bulkResult.matchedCount,
+        modifiedCount: bulkResult.modifiedCount
+      };
+    } catch (bulkError) {
+      throw bulkError;
+    }
+  }
+  return { acknowledged: true, insertedCount: 0, matchedCount: 0, modifiedCount: 0 };
+}
+
+async function updateManyEntries(entries, year, month) {
+  const collection = await getEntryCollection(year, month);
+  const operations = entries.map((entry) => {
+    const { _id, ...fieldsToUpdate } = entry;
+
     if (fieldsToUpdate.date instanceof Date) {
       fieldsToUpdate.date = fieldsToUpdate.date.toISOString().split('T')[0];
     } else if (typeof fieldsToUpdate.date === 'string' && fieldsToUpdate.date.includes('T')) {
@@ -78,17 +135,15 @@ async function updateManyEntries(entries) {
       },
     };
   });
+
   const result = await collection.bulkWrite(operations);
-  const updatedIds = entries.map((u) => ObjectId.createFromHexString(u._id));
-  const updatedCustomers = await collection
-    .find({ _id: { $in: updatedIds } })
-    .toArray();
-  return updatedCustomers;
+  const updatedIds = entries.map((e) => ObjectId.createFromHexString(e._id));
+  const updatedDocs = await collection.find({ _id: { $in: updatedIds } }).toArray();
+  return updatedDocs;
 }
 
-async function updateEntry(entryId, fieldsToUpdate) {
-  const db = app.locals.db;
-  const collection = db.collection("entries");
+async function updateEntry(entryId, fieldsToUpdate, year, month) {
+  const collection = await getEntryCollection(year, month);
 
   fieldsToUpdate.updateDate = new Date();
 
@@ -101,22 +156,7 @@ async function updateEntry(entryId, fieldsToUpdate) {
   let objectIdToQuery;
   try {
     objectIdToQuery = ObjectId.createFromHexString(entryId);
-    console.log(`Backend Debug: updateEntry - Converted entryId "${entryId}" to ObjectId:`, objectIdToQuery);
-    console.log(`Backend Debug: updateEntry - Is converted ObjectId valid?`, ObjectId.isValid(objectIdToQuery));
   } catch (e) {
-    console.error(`Backend Error: Failed to create ObjectId from "${entryId}":`, e);
-    return null;
-  }
-
-  try {
-    const foundDoc = await collection.findOne({ _id: objectIdToQuery });
-    console.log(`Backend Debug: updateEntry - Result of pre-update findOne for _id ${objectIdToQuery}:`, foundDoc);
-    if (!foundDoc) {
-      console.error(`Backend Error: updateEntry - findOne did NOT find document with _id ${objectIdToQuery}.`);
-      return null;
-    }
-  } catch (findError) {
-    console.error(`Backend Error: updateEntry - Error during pre-update findOne for _id ${objectIdToQuery}:`, findError);
     return null;
   }
 
@@ -128,51 +168,36 @@ async function updateEntry(entryId, fieldsToUpdate) {
       { returnDocument: 'after' }
     );
 
-    console.log(`Backend Debug: updateEntry - Raw result from findOneAndUpdate for _id ${objectIdToQuery}:`, updateOperationResult);
-    
-    if (updateOperationResult && updateOperationResult.value) {
-        updatedDocument = updateOperationResult.value;
-    } else if (updateOperationResult && updateOperationResult._id) {
-        updatedDocument = updateOperationResult;
-        console.warn('Backend Warning: findOneAndUpdate.value was empty, but raw result contained the updated document (potentially older driver behavior).');
-    } else {
-        console.warn('Backend Warning: findOneAndUpdate returned no value. Attempting manual re-fetch.');
-        updatedDocument = await collection.findOne({ _id: objectIdToQuery });
-    }
-    
-    console.log(`Backend Debug: updateEntry - Extracted updatedDocument:`, updatedDocument);
+    updatedDocument = updateOperationResult ? updateOperationResult.value : null;
 
   } catch (updateError) {
-    console.error(`Backend Error: updateEntry - Error during findOneAndUpdate for _id ${objectIdToQuery}:`, updateError);
     return null;
   }
 
   if (!updatedDocument) {
-    console.error(`Entry with ID ${entryId} not found for update in service (after findOneAndUpdate returned no value).`);
     return null;
   }
 
   return updatedDocument;
 }
 
-async function deleteEntry(id) {
-  const db = app.locals.db;
-  const collection = db.collection("entries");
-  let obj = await collection.deleteOne({
-    _id: ObjectId.createFromHexString(id),
-  });
-  return obj;
-}
-
-function normalizeNewlines(text) {
-  return text.replace(/\r\n/g, "\n");
+async function deleteEntry(id, year, month) {
+  const collection = await getEntryCollection(year, month);
+  let objectIdToDelete;
+  try {
+    objectIdToDelete = ObjectId.createFromHexString(id);
+  } catch (e) {
+    return { deletedCount: 0 };
+  }
+  let result = await collection.deleteOne({ _id: objectIdToDelete });
+  return result;
 }
 
 module.exports = EntryService = {
   getAllEntries,
   getEntryById,
   addEntry,
-  addManyEntries,
+  bulkAddOrUpdateEntries,
   updateManyEntries,
   updateEntry,
   deleteEntry,

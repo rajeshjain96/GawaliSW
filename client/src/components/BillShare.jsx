@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { BeatLoader } from "react-spinners";
-import { getMonthlySummary } from './MonthlySummary'; 
+import { getMonthlySummary } from './MonthlySummary';
+
 export default function BillShare({ billId, onClose, selectedMonth, selectedYear }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [dailyEntries, setDailyEntries] = useState([]);
-  const [monthlySummary, setMonthlySummary] = useState(null); 
+  const [dailyEntries, setDailyEntries] = useState([]); 
+  const [monthlySummary, setMonthlySummary] = useState(null);
   const [todayStr, setTodayStr] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,21 +16,30 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
       setLoading(true);
       setError(null);
       try {
+        const yearNum = parseInt(selectedYear, 10);
+        const monthNum = parseInt(selectedMonth, 10);
+
+        if (isNaN(yearNum) || isNaN(monthNum)) {
+            setError("Invalid month or year provided for bill details.");
+            setLoading(false);
+            return;
+        }
+
         const userRes = await axios.get(`${import.meta.env.VITE_API_URL}/users/${billId}`);
         let customerProfileData = { ...userRes.data };
 
-        const dailyEntriesRes = await axios.get(
-          `${import.meta.env.VITE_API_URL}/entries`, {
-            params: {
-                userId: billId,
-                month: selectedMonth,
-                year: selectedYear
-            }
-          }
+        const allMonthlyEntriesRes = await axios.get(
+            `${import.meta.env.VITE_API_URL}/entries/${yearNum}/${monthNum}`
         );
-        const entriesData = dailyEntriesRes.data;
+        const entriesDataForThisUser = (allMonthlyEntriesRes.data || []).filter(
+            entry => entry.userId === billId
+        );
+        setDailyEntries(entriesDataForThisUser);
 
-        const allMonthlySummaries = await getMonthlySummary();
+        const allUsersRes = await axios.get(`${import.meta.env.VITE_API_URL}/users`);
+        const allUsersList = allUsersRes.data || [];
+
+        const allMonthlySummaries = await getMonthlySummary(yearNum, monthNum, allUsersList); // Pass allUsersList
         const currentMonthYear = `${selectedYear}-${selectedMonth}`;
         const userMonthlySummary = allMonthlySummaries.find(
           (summary) => summary.userId === billId && summary.month === currentMonthYear
@@ -52,7 +62,6 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
         }
 
         setSelectedCustomer(customerProfileData);
-        setDailyEntries(entriesData);
 
         const today = new Date();
         setTodayStr(today.toLocaleDateString("en-IN"));
@@ -62,7 +71,7 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
         if (axios.isAxiosError(err)) {
             if (err.response) {
                 if (err.response.status === 404) {
-                    setError("Data not found for this customer or entries for the selected month. Please check the backend routes or data.");
+                    setError("Data not found for this customer or entries for the selected month. Please check backend response or data existence.");
                 } else {
                     setError(`Server Error: ${err.response.status} - ${err.response.data?.message || err.message}`);
                 }
@@ -80,44 +89,7 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
     if (billId && selectedMonth && selectedYear) {
       fetchBillDetails();
     }
-  }, [billId, selectedMonth, selectedYear]); 
-
-  // const shareBill = () => {
-  //   if (!selectedCustomer || !monthlySummary || dailyEntries.length === 0) {
-  //     alert("Bill data not fully loaded yet. Please wait or try again.");
-  //     return;
-  //   }
-
-  //   let message = `*|| Shree ||*\n`;
-  //   message += `*The Dairy Shop*\n`;
-  //   message += `220, Market yard, Pune - 411009\n`;
-  //   message += `Date: ${todayStr}\n\n`;
-  //   message += `*Customer Name:* ${selectedCustomer.name || 'N/A'}\n`;
-  //   message += `*Phone number:* ${selectedCustomer.mobileNumber || 'N/A'}\n\n`;
-  //   message += `*Monthly Milk Delivery - ${parseInt(selectedMonth)}/${selectedYear}*\n\n`;
-
-  //   const daysInMonth = new Date(
-  //     parseInt(selectedYear),
-  //     parseInt(selectedMonth),  
-  //     0
-  //   ).getDate();
-
-  //   for (let i = 1; i <= daysInMonth; i++) {
-  //       const dateStr = `${selectedYear}-${selectedMonth}-${String(i).padStart(2, "0")}`;
-  //       const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr) && e.userId === billId);
-  //       const quantity = entry ? parseFloat(entry.qty_delivered || entry.delivered_qty) : 0;
-  //       message += `${String(i).padStart(2, "0")}: ${!isNaN(quantity) && quantity > 0 ? quantity.toFixed(1) + "L" : "✕"} `;
-  //       if (i % 5 === 0) message += `\n`;
-  //   }
-  //   message += `\n`;
-
-  //   message += `*Summary:*\n`;
-  //   message += `Total Milk: ${monthlySummary.totalDelivered.toFixed(2)} Litres\n`;
-  //   message += `*Total Amount: Rs. ${monthlySummary.totalMonthlyAmount.toFixed(2)} /-*`; 
-
-  //   const whatsappUrl = `https://wa.me/${selectedCustomer.mobileNumber}?text=${encodeURIComponent(message)}`;
-  //   window.open(whatsappUrl, "_blank");
-  // };
+  }, [billId, selectedMonth, selectedYear]);
 
   if (loading) {
     return (
@@ -203,7 +175,8 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
 
                 for (let j = i; j < i + 10 && j <= daysInMonth; j++) {
                   const dateStr = `${selectedYear}-${selectedMonth}-${String(j).padStart(2, "0")}`;
-                  const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr) && e.userId === billId);
+                  // Ensure dailyEntries is filtered by userId correctly when rendered
+                  const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr)); // dailyEntries is already filtered by userId
                   const quantity = entry ? parseFloat(entry.qty_delivered || entry.delivered_qty) : 0;
 
                   datesRow.push(
@@ -239,15 +212,7 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
             </div>
           </div>
         </div>
-
-        {/* <div className="text-center mt-4">
-          <button className="btn btn-success px-4 py-2" onClick={shareBill}>
-            Send via WhatsApp
-          </button>
-        </div> */}
       </div>
     </div>
   );
 }
-
-

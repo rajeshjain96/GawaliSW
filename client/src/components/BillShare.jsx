@@ -39,7 +39,7 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
         const allUsersRes = await axios.get(`${import.meta.env.VITE_API_URL}/users`);
         const allUsersList = allUsersRes.data || [];
 
-        const allMonthlySummaries = await getMonthlySummary(yearNum, monthNum, allUsersList); // Pass allUsersList
+        const allMonthlySummaries = await getMonthlySummary(yearNum, monthNum, allUsersList); 
         const currentMonthYear = `${selectedYear}-${selectedMonth}`;
         const userMonthlySummary = allMonthlySummaries.find(
           (summary) => summary.userId === billId && summary.month === currentMonthYear
@@ -132,12 +132,7 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
         className="bg-white p-5 shadow-lg rounded-4 border w-100"
         style={{ maxWidth: 900 }}
       >
-        <button
-          className="btn btn-link mb-3"
-          onClick={onClose}
-        >
-          ← Back to list
-        </button>
+        
         <div className="text-center text-black h5">|| Shree ||</div>
         <div className="text-center text-black fw-bold fs-3">
           The Dairy Shop
@@ -175,8 +170,7 @@ export default function BillShare({ billId, onClose, selectedMonth, selectedYear
 
                 for (let j = i; j < i + 10 && j <= daysInMonth; j++) {
                   const dateStr = `${selectedYear}-${selectedMonth}-${String(j).padStart(2, "0")}`;
-                  // Ensure dailyEntries is filtered by userId correctly when rendered
-                  const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr)); // dailyEntries is already filtered by userId
+                  const entry = dailyEntries.find((e) => e.date?.startsWith(dateStr));
                   const quantity = entry ? parseFloat(entry.qty_delivered || entry.delivered_qty) : 0;
 
                   datesRow.push(

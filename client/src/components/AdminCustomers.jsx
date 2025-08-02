@@ -51,7 +51,6 @@ export default function AdminCustomers(props) {
     customerSchema.forEach((e, index) => {
       let obj = {};
       if (e.type != "relationalId") {
-        // do not show id of relational data.
         obj["attribute"] = e.attribute;
         if (cnt < 5) {
           obj["show"] = true;
@@ -104,7 +103,6 @@ export default function AdminCustomers(props) {
   }
   async function handleFormSubmit(customer) {
     let message;
-    // now remove relational data
     let customerForBackEnd = { ...customer };
     for (let key in customerForBackEnd) {
       customerSchema.forEach((e, index) => {
@@ -123,7 +121,6 @@ export default function AdminCustomers(props) {
         );
         customer._id = await response.data.insertedId;
         message = "Customer added successfully";
-        // update the customer list now.
         let prList = [...customerList];
         prList.push(customer);
         setCustomerList(prList);
@@ -138,7 +135,7 @@ export default function AdminCustomers(props) {
 
       setFlagLoad(false);
     } else if (action == "update") {
-      customer._id = customerToBeEdited._id; // The form does not have id field
+      customer._id = customerToBeEdited._id;  
       // await updateBackendCustomer(customer);
       setFlagLoad(true);
       try {
@@ -149,7 +146,6 @@ export default function AdminCustomers(props) {
         );
         let r = await response.data;
         message = "Customer Updated successfully";
-        // update the customer list now.
         let prList = customerList.map((e, index) => {
           if (e._id == customer._id) return customer;
           return e;
@@ -169,7 +165,6 @@ export default function AdminCustomers(props) {
     }
   }
   function handleFormCloseClick() {
-    // props.onFormCloseClick();
     setAction("list");
   }
   function handleListClick() {
@@ -197,7 +192,6 @@ export default function AdminCustomers(props) {
       );
       let r = await response.data;
       message = `Customer - ${customer.name} deleted successfully.`;
-      //update the customer list now.
       let prList = customerList.filter((e, index) => e._id != customer._id);
       setCustomerList(prList);
 
@@ -210,7 +204,6 @@ export default function AdminCustomers(props) {
     setFlagLoad(false);
   }
   function handleListCheckBoxClick(checked, selectedIndex) {
-    // Minimum 1 field should be shown
     let cnt = 0;
     showInList.forEach((e, index) => {
       if (e.show) {
@@ -235,23 +228,19 @@ export default function AdminCustomers(props) {
       }
       return p;
     });
-    // sEntity.attributes = a;
     setShowInList(a);
   }
   function handleHeaderClick(index) {
     let field = showInList[index].attribute;
     let d = false;
     if (field === sortedField) {
-      // same button clicked twice
       d = !direction;
     } else {
-      // different field
       d = false;
     }
     let list = [...filteredCustomerList];
     setDirection(d);
     if (d == false) {
-      //in ascending order
       list.sort((a, b) => {
         if (a[field] > b[field]) {
           return 1;
@@ -262,7 +251,6 @@ export default function AdminCustomers(props) {
         return 0;
       });
     } else {
-      //in descending order
       list.sort((a, b) => {
         if (a[field] < b[field]) {
           return 1;
@@ -288,7 +276,6 @@ export default function AdminCustomers(props) {
     let list = [...filteredCustomerList];
     setDirection(!direction);
     if (d == false) {
-      //in ascending order
       list.sort((a, b) => {
         if (new Date(a["updateDate"]) > new Date(b["updateDate"])) {
           return 1;
@@ -299,7 +286,6 @@ export default function AdminCustomers(props) {
         return 0;
       });
     } else {
-      //in descending order
       list.sort((a, b) => {
         if (new Date(a["updateDate"]) < new Date(b["updateDate"])) {
           return 1;
@@ -364,8 +350,8 @@ export default function AdminCustomers(props) {
             break;
           }
         }
-      } //inner for
-    } //outer for
+      } 
+    } 
     return fList;
   }
   function handleChangeImageClick(index) {

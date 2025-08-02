@@ -85,14 +85,12 @@ export default function Payments(props) {
     setFlagLoad(true);
     try {
       const [userRes, paymentRes] = await Promise.all([
-        axios(import.meta.env.VITE_API_URL + "/users"), // This fetches user data
+        axios(import.meta.env.VITE_API_URL + "/users"), 
         axios(import.meta.env.VITE_API_URL + "/payments"),
       ]);
 
-      // --- CRITICAL CHANGE HERE ---
-      // Ensure userList is an array, default to empty array if userRes.data is null or undefined
+     
       const userList = userRes.data || [];
-      // --- END CRITICAL CHANGE ---
 
       const paymentListRaw = paymentRes.data;
 
@@ -107,7 +105,6 @@ export default function Payments(props) {
         return;
       }
 
-      // Pass userList (now guaranteed to be an array)
       const allMonthlySummaries = await getMonthlySummary(
         yearToFetch,
         monthToFetch,
@@ -116,7 +113,7 @@ export default function Payments(props) {
 
       const currentMonthYear = `${selectedYear}-${selectedMonth}`;
 
-      const mergedList = userList // This loop already uses userList
+      const mergedList = userList 
         .filter((user) => user.roleId === "68691372fa624c1dff2e06be")
         .map((user) => {
           const startDate = new Date(user.start_date);

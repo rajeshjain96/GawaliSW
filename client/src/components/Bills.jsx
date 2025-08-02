@@ -501,8 +501,15 @@ export default function Bills(props) {
         billPayload
       );
 
-      const billLink = `${import.meta.env.VITE_API_URL}/bill/${res.data._id}`;
-      console.log(billLink, "Billlinkkkkkk");
+      // const billLink = `${import.meta.env.VITE_API_URL}/bills/${res.data._id}`;
+      // console.log(billLink, "Billlinkkkkkk");
+      const customerUserId = bill.userId; 
+      const linkMonth = selectedMonth;
+      const linkYear = selectedYear;
+      const billLink = `http://localhost:5173/bills/share/${customerUserId}?month=${linkMonth}&year=${linkYear}`;
+      
+      console.log(billLink, "Billlinkkkkkk"); 
+
 
       const { name, totalDelivered, totalMonthlyAmount } = bill;
       const messageText =

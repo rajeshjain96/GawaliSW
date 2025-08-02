@@ -56,6 +56,8 @@ export default function AdminDailyEntry(props) {
   const [validationMessage, setValidationMessage] = useState("");
   const [validationMessageDate, setValidationMessageDate] = useState(null);
 
+  const [datePickerIsOpen, setDatePickerIsOpen] = useState(false);
+
   function resolveSelectedDate(option, customDate = "") {
     const today = new Date();
     if (option === "Today") return today.toISOString().split("T")[0];
@@ -362,76 +364,28 @@ export default function AdminDailyEntry(props) {
     }, 3000);
   }
 
-  // async function handleModalQtySubmit() {
-  //   if (!modalUser || modalQty === "") {
-  //     showMessage("Please enter a valid quantity.");
-  //     return;
-  //   }
-
-  //   const currentSelectedDate = resolveSelectedDate(
-  //     selectedDateOption,
-  //     anotherDate
-  //   );
-  //   const { year, month } = getYearMonthFromDate(currentSelectedDate);
-
-  //   const entryData = {
-  //     userId: modalUser.userId,
-  //     delivered_qty: modalQty,
-  //     entry_status: "Change",
-  //     date: currentSelectedDate,
-  //   };
-
-  //   const url = modalUser.entryId
-  //     ? `${import.meta.env.VITE_API_URL}/entries/${year}/${month}/${modalUser.entryId}`
-  //     : `${import.meta.env.VITE_API_URL}/entries/${year}/${month}`;
-
-  //   const method = modalUser.entryId ? axios.put : axios.post;
-
-  //   try {
-  //     await method(url, entryData, {
-  //       headers: { "Content-type": "application/json" },
-  //     });
-
-  //     await fetchEntriesAndInitializeDisplay(selectedDateOption, anotherDate, allUsersFromDatabase);
-
-  //     showMessage("Entry updated to 'Change'");
-  //     setSelectedIds([]);
-  //     setShowChangeModal(false);
-  //   } catch (error) {
-  //     if (error.response) {
-  //       console.error("Error response data:", error.response.data);
-  //       console.error("Error response status:", error.response.status);
-  //     } else if (error.request) {
-  //       console.error("Error request:", error.request);
-  //     } else {
-  //       console.error("Error message:", error.message);
-  //     }
-  //     showMessage("Failed to update entry");
-  //     setShowChangeModal(false);
-  //   }
-  // }
   async function handleModalQtySubmit() {
     if (!modalUser || modalQty === "") {
       showMessage("Please enter a valid quantity.");
       return;
     }
-  
+
     const currentSelectedDate = resolveSelectedDate(
       selectedDateOption,
       anotherDate
     );
     const { year, month } = getYearMonthFromDate(currentSelectedDate);
-  
+
     const entryData = {
       userId: modalUser.userId,
       delivered_qty: modalQty,
       entry_status: "Change",
       date: currentSelectedDate,
     };
-  
+
     const url = `${import.meta.env.VITE_API_URL}/entries/${year}/${month}`;
     const method = axios.post;
-  
+
     try {
       await method(url, entryData, {
         headers: { "Content-type": "application/json" },
@@ -441,7 +395,7 @@ export default function AdminDailyEntry(props) {
         anotherDate,
         allUsersFromDatabase
       );
-  
+
       showMessage("Entry updated to 'Change'");
       setSelectedIds([]);
       setShowChangeModal(false);
@@ -458,7 +412,7 @@ export default function AdminDailyEntry(props) {
       setShowChangeModal(false);
     }
   }
-  
+
 
   function handleDeleteButtonClick(ans, entry) {
     if (ans == "No") {
@@ -715,7 +669,7 @@ export default function AdminDailyEntry(props) {
               .toLowerCase()
               .includes(query.toLowerCase())
           ) {
-            fList.push(currentDayEntryList[i]);
+            fList.push(currentDayDayEntryList[i]);
             break;
           }
         }
@@ -844,6 +798,7 @@ export default function AdminDailyEntry(props) {
     setSelectedDateOption("Another Day");
     setAnotherDate(newDateISO);
     fetchDataForSelectedDate("Another Day", newDateISO);
+    setDatePickerIsOpen(false);
   };
 
   const handleNextDate = () => {
@@ -854,6 +809,7 @@ export default function AdminDailyEntry(props) {
     setSelectedDateOption("Another Day");
     setAnotherDate(newDateISO);
     fetchDataForSelectedDate("Another Day", newDateISO);
+    setDatePickerIsOpen(false);
   };
   const todayAtMidnight = new Date();
   todayAtMidnight.setHours(0, 0, 0, 0);
@@ -900,6 +856,7 @@ export default function AdminDailyEntry(props) {
                 setSelectedDateOption("Today");
                 setAnotherDate("");
                 fetchDataForSelectedDate("Today");
+                setDatePickerIsOpen(false); 
               }}
             >
               Today
@@ -915,6 +872,7 @@ export default function AdminDailyEntry(props) {
                 setSelectedDateOption("Yesterday");
                 setAnotherDate("");
                 fetchDataForSelectedDate("Yesterday");
+                setDatePickerIsOpen(false); 
               }}
             >
               Yesterday
@@ -928,6 +886,7 @@ export default function AdminDailyEntry(props) {
               }`}
               onClick={() => {
                 setSelectedDateOption("Another Day");
+                setDatePickerIsOpen(true);
               }}
             >
               Another Day
@@ -940,6 +899,7 @@ export default function AdminDailyEntry(props) {
                   setAnotherDate(newDateISO);
                   setSelectedIds([]);
                   fetchDataForSelectedDate("Another Day", newDateISO);
+                  setDatePickerIsOpen(false); 
                 }}
                 dateFormat="yyyy-MM-dd"
                 maxDate={new Date()}
@@ -949,7 +909,9 @@ export default function AdminDailyEntry(props) {
                   validationMessageDate &&
                   (anotherDate ? new Date(anotherDate).setHours(0, 0, 0, 0) > validationMessageDate.setHours(0,0,0,0) : false)
                 }
-
+                open={datePickerIsOpen}
+                onInputClick={() => setDatePickerIsOpen(true)} 
+                onCalendarClose={() => setDatePickerIsOpen(false)} 
               />
             )}
           </div>

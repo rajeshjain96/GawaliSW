@@ -8,26 +8,40 @@ import AdminEnquiryFiles from "./components/AdminEnquiryFiles";
 import AdminEnquiryRemarks from "./components/AdminEnquiryRemarks";
 import ClientResources from "./components/ClientResources";
 import Bills from "./components/Bills";
-import BillShare from "./components/BillShare"; 
+import BillShare from "./components/BillShare";
 
 const BillShareRouteWrapper = () => {
-  const { userId } = useParams(); 
-  const [searchParams] = useSearchParams(); 
-  const month = searchParams.get('month'); 
-  const year = searchParams.get('year');   
+  const { userId } = useParams();
+  const [searchParams] = useSearchParams();
+  const month = searchParams.get('month');
+  const year = searchParams.get('year');
 
   return (
     <BillShare
-      billId={userId}       
+      billId={userId}
       selectedMonth={month}
-      selectedYear={year}  
-      onClose={() => window.history.back()} 
+      selectedYear={year}
+      onClose={() => window.history.back()}
+    />
+  );
+};
+
+const BillsRouteWrapper = () => {
+  const { year, month } = useParams(); 
+  const today = new Date();
+  const defaultMonth = (today.getMonth() + 1).toString().padStart(2, "0");
+  const defaultYear = today.getFullYear().toString();
+
+  return (
+    <Bills
+      initialYear={year || defaultYear}   
+      initialMonth={month || defaultMonth}  
     />
   );
 };
 
 function App() {
-  axios.defaults.withCredentials = true; // ⬅️ Important!
+  axios.defaults.withCredentials = true; 
 
   return (
     <>
@@ -42,15 +56,12 @@ function App() {
           />
           <Route path="/AdminEnquiryFiles" element={<AdminEnquiryFiles />} />
           <Route path="/resources" element={<Resources />} />
-
-          <Route path="/bills" element={<Bills />} />
+          <Route path="/bills/:year/:month" element={<BillsRouteWrapper />} />
+          <Route path="/bills" element={<BillsRouteWrapper />} />
           <Route path="/bills/share/:userId" element={<BillShareRouteWrapper />} />
 
         </Routes>
       </Router>
-      {/* This Home Component was developed for Nimbalkar's sw.
-    commented on date: 05.04.2025*/}
-      {/* <Home /> */}
     </>
   );
 }

@@ -6,16 +6,6 @@
     "auditLog": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\.ab706eb247a7980b79d1dff02ffecf2dec871418-audit.json",
     "files": [
         {
-            "date": 1752953972896,
-            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-20.log",
-            "hash": "5c16a51aed5d2d097ca23a6095a5e2b89afaa6117758d1ad83736b00b237c000"
-        },
-        {
-            "date": 1753036218983,
-            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-21.log",
-            "hash": "5d98d98eec6c102db9702ad302c49844dca1ccea9fd31766d35f31a2a7691db2"
-        },
-        {
             "date": 1753199172590,
             "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-07-22.log",
             "hash": "9376c0af20a221b18ef80963e4c8a23e679b7534d26acffe5c8c5f65748b23a3"
@@ -49,6 +39,11 @@
             "date": 1754159582225,
             "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-08-03.log",
             "hash": "f930ce0d1b435854e3e10f54548ce5a4c9171e67c6c2cd4c6263604869f88c99"
+        },
+        {
+            "date": 1754288722179,
+            "name": "C:\\Web Technology\\React_Application\\new\\Milk_App\\logs\\activity-2025-08-04.log",
+            "hash": "dfab33cdcd59eab7c2a7b619186fe5d3a22a9ef83a53fc0b6e42bdc1a76d8c29"
         }
     ],
     "hashType": "sha256"

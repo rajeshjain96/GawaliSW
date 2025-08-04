@@ -22,7 +22,7 @@ export default function Payments(props) {
   let [paymentList, setPaymentList] = useState([]);
   let [filteredPaymentList, setFilteredPaymentList] = useState([]);
   let [action, setAction] = useState("list");
-  let [userToBeEdited, setUserToBeEdited] = useState("");
+  let [userToBeEdited, setUserToBeEdited] = useState(""); // Renamed to userToBeEdited as per your original
   let [flagLoad, setFlagLoad] = useState(false);
   let [flagImport, setFlagImport] = useState(false);
   let [message, setMessage] = useState("");
@@ -68,7 +68,7 @@ export default function Payments(props) {
 
   let [emptyPayment, setEmptyPayment] = useState({
     ...getEmptyObject(paymentSchema),
-    roleId: "68691372fa624c1dff2e06be",
+    roleId: "68691372fa624c1dff2e06be", 
     name: "",
     totalDelivered: 0,
     totalMonthlyAmount: 0,
@@ -79,20 +79,13 @@ export default function Payments(props) {
 
   useEffect(() => {
     fetchAndProcessData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear]); 
 
   async function fetchAndProcessData() {
     setFlagLoad(true);
     try {
-      const [userRes, paymentRes] = await Promise.all([
-        axios(import.meta.env.VITE_API_URL + "/users"), 
-        axios(import.meta.env.VITE_API_URL + "/payments"),
-      ]);
-
-     
+      const userRes = await axios(import.meta.env.VITE_API_URL + "/users");
       const userList = userRes.data || [];
-
-      const paymentListRaw = paymentRes.data;
 
       const yearToFetch = parseInt(selectedYear, 10);
       const monthToFetch = parseInt(selectedMonth, 10);
@@ -105,27 +98,32 @@ export default function Payments(props) {
         return;
       }
 
+      const paymentRes = await axios(
+        `${import.meta.env.VITE_API_URL}/payments/${yearToFetch}/${monthToFetch}`
+      );
+      const paymentListRaw = paymentRes.data;
+
+      const currentMonthYear = `${selectedYear}-${selectedMonth}`;
+
       const allMonthlySummaries = await getMonthlySummary(
         yearToFetch,
         monthToFetch,
         userList
       );
 
-      const currentMonthYear = `${selectedYear}-${selectedMonth}`;
-
-      const mergedList = userList 
+      const mergedList = userList
         .filter((user) => user.roleId === "68691372fa624c1dff2e06be")
         .map((user) => {
           const startDate = new Date(user.start_date);
           const startYearNum = startDate.getFullYear();
-          const startMonthNum = startDate.getMonth();
+          const startMonthNum = startDate.getMonth(); 
 
           if (
-            startYearNum > parseInt(selectedYear) ||
-            (startYearNum === parseInt(selectedYear) &&
-              startMonthNum > parseInt(selectedMonth) - 1)
+            startYearNum > yearToFetch ||
+            (startYearNum === yearToFetch &&
+              startMonthNum > monthToFetch - 1) 
           ) {
-            return null;
+            return null; 
           }
 
           const userSummaryForMonth = allMonthlySummaries.find(
@@ -156,15 +154,15 @@ export default function Payments(props) {
           let effectiveUpdateDate =
             monthlyBillRecord?.updateDate ||
             user.updateDate ||
-            new Date(
-              parseInt(selectedYear),
-              parseInt(selectedMonth) - 1,
+            new Date( 
+              yearToFetch,
+              monthToFetch - 1, 
               1
             ).toISOString();
           let paymentMode = monthlyBillRecord?.payment_mode ?? "";
 
           return {
-            _id: user._id,
+            _id: user._id, 
             userId: user._id,
             name: user.name,
             totalDelivered: totalDelivered,
@@ -172,11 +170,11 @@ export default function Payments(props) {
             paidAmount: paidAmount,
             balanceAmount: balanceAmount,
             updateDate: effectiveUpdateDate,
-            paymentId: monthlyBillRecord?._id || null,
+            paymentId: monthlyBillRecord?._id || null, 
             payment_mode: paymentMode,
           };
         })
-        .filter(Boolean);
+        .filter(Boolean); 
 
       mergedList.sort(
         (a, b) => new Date(b.updateDate || 0) - new Date(a.updateDate || 0)
@@ -194,21 +192,20 @@ export default function Payments(props) {
   async function handleFormSubmit(payment) {
     let message;
     let paymentForBackEnd = { ...payment };
-
     const dateForMonthlyEntry = `${selectedYear}-${selectedMonth}-01T00:00:00.000Z`;
 
     const monthlyPaymentPayload = {
       userId: paymentForBackEnd.userId,
       name: paymentForBackEnd.name,
-      date: dateForMonthlyEntry,
+      date: dateForMonthlyEntry, 
 
       paidAmount:
         paymentForBackEnd.paidAmount === null
           ? 0
           : paymentForBackEnd.paidAmount,
       balanceAmount: paymentForBackEnd.balanceAmount,
-      totalDelivered: paymentForBackEnd.totalDelivered,
-      totalMonthlyAmount: paymentForBackEnd.totalMonthlyAmount,
+      totalDelivered: paymentForBackEnd.totalDelivered, 
+      totalMonthlyAmount: paymentForBackEnd.totalMonthlyAmount, 
       payment_mode: paymentForBackEnd.payment_mode,
     };
 
@@ -221,25 +218,23 @@ export default function Payments(props) {
       let response;
       if (paymentForBackEnd.paymentId) {
         response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/payments/${
-            paymentForBackEnd.paymentId
-          }`,
+          `${import.meta.env.VITE_API_URL}/payments/${selectedYear}/${selectedMonth}/${paymentForBackEnd.paymentId}`, 
           monthlyPaymentPayload,
           { headers: { "Content-type": "application/json" } }
         );
         message = "Monthly payment record updated successfully.";
       } else {
         response = await axios.post(
-          import.meta.env.VITE_API_URL + "/payments",
+          `${import.meta.env.VITE_API_URL}/payments/${selectedYear}/${selectedMonth}`, 
           monthlyPaymentPayload,
           { headers: { "Content-type": "application/json" } }
         );
-        message = "Added Payemnt Successfully";
+        message = "Added Payment Successfully";
       }
 
       showMessage(message);
       setAction("list");
-      await fetchAndProcessData();
+      await fetchAndProcessData(); 
     } catch (error) {
       console.error("Form submission error:", error);
       showMessage(
@@ -263,12 +258,12 @@ export default function Payments(props) {
     let safePayment = {
       ...emptyPayment,
       ...payment,
-      info: payment.info || "",
+      info: payment.info || "", 
     };
     safePayment.paidAmount =
-      safePayment.paidAmount === 0 ? null : safePayment.paidAmount;
+      safePayment.paidAmount === 0 ? null : safePayment.paidAmount; 
     setAction("update");
-    setUserToBeEdited(safePayment);
+    setUserToBeEdited(safePayment); 
   }
   function showMessage(message) {
     setMessage(message);
@@ -292,7 +287,7 @@ export default function Payments(props) {
     try {
       if (payment.paymentId) {
         await axios.delete(
-          `${import.meta.env.VITE_API_URL}/payments/${payment.paymentId}`
+          `${import.meta.env.VITE_API_URL}/payments/${selectedYear}/${selectedMonth}/${payment.paymentId}` // Pass year/month to DELETE
         );
         showMessage(
           `Monthly payment record for ${payment.name} deleted successfully.`
@@ -303,7 +298,7 @@ export default function Payments(props) {
         );
       }
 
-      await fetchAndProcessData();
+      await fetchAndProcessData(); // Re-fetch to update the list
     } catch (error) {
       console.error("Delete operation failed:", error);
       showMessage("Something went wrong during deletion, refresh the page");
@@ -387,7 +382,7 @@ export default function Payments(props) {
       });
     }
     setFilteredPaymentList(list);
-    setSortedField("updateDate");
+    setSortedField(field);
   }
   function handleSrNoClick() {
     let d = false;
@@ -499,6 +494,11 @@ export default function Payments(props) {
   function handleModalCloseClick() {
     setFlagImport(false);
   }
+  function handleModalButtonCancelClick() {
+    setFlagImport(false);
+    showMessage("Import operation cancelled.");
+  }
+
   async function handleImportButtonClick() {
     setFlagImport(false);
     setFlagLoad(true);
@@ -507,8 +507,8 @@ export default function Payments(props) {
       if (recordsToBeAdded.length > 0) {
         result = await recordsAddBulk(
           recordsToBeAdded,
-          "users",
-          paymentList,
+          "users", 
+          paymentList, 
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
@@ -519,8 +519,8 @@ export default function Payments(props) {
       if (recordsToBeUpdated.length > 0) {
         result = await recordsUpdateBulk(
           recordsToBeUpdated,
-          "users",
-          paymentList,
+          "users", 
+          paymentList, 
           import.meta.env.VITE_API_URL
         );
         if (result.success) {
@@ -599,9 +599,9 @@ export default function Payments(props) {
               onChange={(e) => setSelectedYear(e.target.value)}
             >
               {Array.from({ length: 5 }, (_, i) => {
-                const year = currentYear - 2 + i;
+                const year = parseInt(currentYear) - 2 + i; 
                 return (
-                  <option key={year} value={year} disabled={year > currentYear}>
+                  <option key={year} value={year} disabled={year > parseInt(currentYear)}>
                     {year}
                   </option>
                 );
@@ -610,6 +610,10 @@ export default function Payments(props) {
           </div>
         </div>
       )}
+
+      {/* Removed the next/previous day navigation buttons as 'day' is not used */}
+      {/* Removed the 'Delivered', 'Khada', 'Change' action buttons as they are entry-specific */}
+      {/* Removed validationMessage and globalLatestEntryDate display */}
 
       {action === "list" && filteredPaymentList.length !== 0 && (
         <CheckBoxHeaders
@@ -652,7 +656,7 @@ export default function Payments(props) {
             paymentValidations={paymentValidations}
             emptyPayment={emptyPayment}
             selectedEntity={selectedEntity}
-            userToBeEdited={userToBeEdited}
+            userToBeEdited={userToBeEdited} 
             action={action}
             flagFormInvalid={flagFormInvalid}
             onFormSubmit={handleFormSubmit}
@@ -664,7 +668,10 @@ export default function Payments(props) {
       {action === "list" &&
         filteredPaymentList.length !== 0 &&
         filteredPaymentList.map((e, index) => (
-          <div className="row mx-auto mt-2 my-1" key={index}>
+          <div
+            className={`row mx-auto mt-2 my-1`} 
+            key={index} 
+          >
             <div className="col-12">
               <Entity
                 entity={e}
@@ -690,7 +697,7 @@ export default function Payments(props) {
           updations={recordsToBeUpdated}
           btnGroup={["Yes", "No"]}
           onModalCloseClick={handleModalCloseClick}
-          onModalButtonCancelClick={handleModalButtonCancelClick}
+          onModalButtonCancelClick={handleModalButtonCancelClick} 
           onImportButtonClick={handleImportButtonClick}
         />
       )}

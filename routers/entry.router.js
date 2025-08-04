@@ -14,44 +14,116 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+// function validateMonthYear(req, res, next) {
+//   const { year, month , day } = req.params;
+//   const parsedYear = parseInt(year, 10);
+//   const parsedMonth = parseInt(month, 10);
+//   const parsedDay = day ? parseInt(day, 10) : null;
+
+//   if (isNaN(parsedYear) || isNaN(parsedMonth) || isNaN(parsedDay) || parsedYear < 2000 || parsedMonth < 1 || parsedMonth > 12 || parsedDay < 1 || parsedDay > 31) {
+//     return res.status(400).json({ message: "Invalid year or month in URL. Year must be >= 2000, Month 1-12." });
+//   }
+//   req.targetYear = parsedYear;
+//   req.targetMonth = parsedMonth;
+//   req.targetDay = parsedDay;
+
+//   next();
+// }
 function validateMonthYear(req, res, next) {
-  const { year, month } = req.params;
+  const { year, month , day } = req.params; 
   const parsedYear = parseInt(year, 10);
   const parsedMonth = parseInt(month, 10);
-
+  let parsedDay = null; 
+  if (day) { 
+    parsedDay = parseInt(day, 10);
+  }
   if (isNaN(parsedYear) || isNaN(parsedMonth) || parsedYear < 2000 || parsedMonth < 1 || parsedMonth > 12) {
     return res.status(400).json({ message: "Invalid year or month in URL. Year must be >= 2000, Month 1-12." });
   }
+
+  if (day && (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31)) {
+    return res.status(400).json({ message: "Invalid day in URL. Day must be 1-31." });
+  }
+
   req.targetYear = parsedYear;
   req.targetMonth = parsedMonth;
+  req.targetDay = parsedDay; 
+
   next();
 }
 
-router.get("/:year/:month", validateMonthYear, async (req, res, next) => {
-  try {
-    const { targetYear, targetMonth } = req;
-    let list = await EntryService.getAllEntries(targetYear, targetMonth);
+// router.get("/:year/:month/:day", validateMonthYear, async (req, res, next) => {
+//   try {
+//     const { targetYear, targetMonth , targetDay } = req;
+//     let list = await EntryService.getAllEntries(targetYear, targetMonth,targetDay);
 
-    if (!list || list.length === 0) {
-      return res.status(404).json({ message: `No entries found for ${targetMonth}/${targetYear}` });
-    }
+//     if (!list || list.length === 0) {
+//       return res.status(404).json({ message: `No entries found for ${targetMonth}/${targetYear}/${targetDay}` });
+//     }
+//     res.status(200).json(list);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+// router.get("/:year/:month/:id", validateMonthYear, async (req, res, next) => {
+//   try {
+//     const { targetYear, targetMonth } = req;
+//     let id = req.params.id;
+//     let obj = await EntryService.getEntryById(id, targetYear, targetMonth);
+//     if (!obj) {
+//       return res.status(404).json({ message: "Entry not found" });
+//     }
+//     res.send(obj);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+router.get("/:year/:month/:day", validateMonthYear, async (req, res, next) => {
+  try {
+    const { targetYear, targetMonth , targetDay } = req;
+    let list = await EntryService.getAllEntries(targetYear, targetMonth, targetDay);
+
+    // if (!list || list.length === 0) {
+    //   return res.status(404).json({ message: `No entries found for ${targetMonth}/${targetYear}/${targetDay}` });
+    // }
     res.status(200).json(list);
   } catch (error) {
     next(error);
   }
 });
 
-router.get("/:year/:month/:id", validateMonthYear, async (req, res, next) => {
+router.get("/:year/:month", validateMonthYear, async (req, res, next) => {
+    try {
+        const { targetYear, targetMonth } = req;
+        let list = await EntryService.getAllEntries(targetYear, targetMonth);
+
+        // if (!list || list.length === 0) {
+        //     return res.status(404).json({ message: `No entries found for ${targetMonth}/${targetYear}` });
+        // }
+        res.status(200).json(list);
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+router.get("/:year/:month/:id", validateMonthYear, async (req, res, next) => { 
   try {
     const { targetYear, targetMonth } = req;
-    let id = req.params.id;
+    let id = req.params.id; 
     let obj = await EntryService.getEntryById(id, targetYear, targetMonth);
     if (!obj) {
       return res.status(404).json({ message: "Entry not found" });
     }
     res.send(obj);
   } catch (error) {
-    next(error);
+    if (error.name === 'BSONTypeError' || error.name === 'CastError') {
+      return res.status(400).json({ message: "Invalid Entry ID format." });
+  }
+  console.error("Error fetching entry by ID:", error); // Log the error
+  next(error);
   }
 });
 
@@ -145,5 +217,6 @@ router.delete("/:year/:month/:id", validateMonthYear, async (req, res, next) => 
     next(error);
   }
 });
+
 
 module.exports = router;

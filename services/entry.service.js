@@ -13,11 +13,23 @@ async function getEntryCollection(year, month) {
   return db.collection(collectionName);
 }
 
-async function getAllEntries(year, month) {
+// async function getAllEntries(year, month) {
+//   const collection = await getEntryCollection(year, month);
+//   let list = await collection.find().toArray();
+//   return list;
+// }
+async function getAllEntries(year, month, day = null) {
   const collection = await getEntryCollection(year, month);
-  let list = await collection.find().toArray();
+  let filter = {};
+  if (day !== null) {
+    const formattedDay = String(day).padStart(2, '0');
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${formattedDay}`;
+    filter.date = dateStr;
+  }
+  let list = await collection.find(filter).toArray();
   return list;
 }
+
 
 async function getEntryById(id, year, month) {
   const collection = await getEntryCollection(year, month);

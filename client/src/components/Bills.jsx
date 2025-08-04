@@ -16,7 +16,7 @@ import {
 } from "../external/vite-sdk";
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 import BillForm from "./BillForm";
-import { getMonthlySummary } from "./MonthlySummary"; // Correct path to getMonthlySummary
+import { getMonthlySummary } from "./MonthlySummary";
 import BillShare from "./BillShare";
 
 export default function Bills(props) {
@@ -83,29 +83,24 @@ export default function Bills(props) {
   async function fetchAndProcessData() {
     setFlagLoad(true);
     try {
-      const [userRes, billRes] = await Promise.all([
-        axios(import.meta.env.VITE_API_URL + "/users"), // This fetches user data
-        axios(import.meta.env.VITE_API_URL + "/bills"),
-      ]);
-
-      // --- CRITICAL CHANGES HERE ---
-      // 1. Ensure userList is an array, default to empty array if userRes.data is null or undefined
-      const userList = userRes.data || [];
-      const billListRaw = billRes.data;
-
-      // 2. Parse year and month to integers
       const yearToFetch = parseInt(selectedYear, 10);
       const monthToFetch = parseInt(selectedMonth, 10);
 
       if (isNaN(yearToFetch) || isNaN(monthToFetch)) {
         console.error("Invalid year or month selected. Cannot fetch monthly summary.");
         setFlagLoad(false);
-        return; // Exit if year or month are not valid numbers
+        return;
       }
 
-      // 3. Pass all three arguments to getMonthlySummary
+      const userRes = await axios(import.meta.env.VITE_API_URL + "/users");
+      const billRes = await axios(
+        `${import.meta.env.VITE_API_URL}/bills/${yearToFetch}/${monthToFetch}`
+      );
+
+      const userList = userRes.data || [];
+      const billListRaw = billRes.data;
+
       const allMonthlySummaries = await getMonthlySummary(yearToFetch, monthToFetch, userList);
-      // --- END CRITICAL CHANGES ---
 
       const currentMonthYear = `${selectedYear}-${selectedMonth}`;
 
@@ -199,14 +194,14 @@ export default function Bills(props) {
       let response;
       if (billForBackEnd.billId) {
         response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/bills/${billForBackEnd.billId}`,
+          `${import.meta.env.VITE_API_URL}/bills/${selectedYear}/${selectedMonth}/${billForBackEnd.billId}`,
           monthlyBillPayload,
           { headers: { "Content-type": "application/json" } }
         );
         message = "Monthly bill record updated successfully.";
       } else {
         response = await axios.post(
-          import.meta.env.VITE_API_URL + "/bills",
+          `${import.meta.env.VITE_API_URL}/bills/${selectedYear}/${selectedMonth}`,
           monthlyBillPayload,
           { headers: { "Content-type": "application/json" } }
         );
@@ -435,6 +430,10 @@ export default function Bills(props) {
   function handleModalCloseClick() {
     setFlagImport(false);
   }
+  function handleModalButtonCancelClick() {
+    setFlagImport(false);
+    showMessage("Import operation cancelled.");
+  }
   async function handleImportButtonClick() {
     setFlagImport(false);
     setFlagLoad(true);
@@ -443,9 +442,11 @@ export default function Bills(props) {
       if (recordsToBeAdded.length > 0) {
         result = await recordsAddBulk(
           recordsToBeAdded,
-          "users",
+          "bills",
           billList,
-          import.meta.env.VITE_API_URL
+          import.meta.env.VITE_API_URL,
+          selectedYear,
+          selectedMonth
         );
         if (result.success) {
           await fetchAndProcessData();
@@ -455,9 +456,11 @@ export default function Bills(props) {
       if (recordsToBeUpdated.length > 0) {
         result = await recordsUpdateBulk(
           recordsToBeUpdated,
-          "users",
+          "bills",
           billList,
-          import.meta.env.VITE_API_URL
+          import.meta.env.VITE_API_URL,
+          selectedYear,
+          selectedMonth
         );
         if (result.success) {
           await fetchAndProcessData();
@@ -493,23 +496,21 @@ export default function Bills(props) {
       totalMonthlyAmount: bill.totalMonthlyAmount,
       userId: bill.userId,
       updateDate: bill.updateDate,
+      ...(bill.billId && { billId: bill.billId }),
     };
 
     try {
       const res = await axios.post(
-        import.meta.env.VITE_API_URL + "/bills",
+        `${import.meta.env.VITE_API_URL}/bills/${selectedYear}/${selectedMonth}`,
         billPayload
       );
 
-      // const billLink = `${import.meta.env.VITE_API_URL}/bills/${res.data._id}`;
-      // console.log(billLink, "Billlinkkkkkk");
-      const customerUserId = bill.userId; 
+      const customerUserId = bill.userId;
       const linkMonth = selectedMonth;
       const linkYear = selectedYear;
       const billLink = `http://localhost:5173/bills/share/${customerUserId}?month=${linkMonth}&year=${linkYear}`;
-      
-      console.log(billLink, "Billlinkkkkkk"); 
 
+      console.log(billLink, "Billlinkkkkkk");
 
       const { name, totalDelivered, totalMonthlyAmount } = bill;
       const messageText =
@@ -673,7 +674,7 @@ export default function Bills(props) {
                 direction={direction}
                 onHeaderClick={handleHeaderClick}
               />
-              <div className="col-1">&nbsp;</div>
+              <div className="col-2 d-flex justify-content-center align-items-center gap-2">Actions</div>
             </div>
           )}
 
@@ -723,7 +724,7 @@ export default function Bills(props) {
           updations={recordsToBeUpdated}
           btnGroup={["Yes", "No"]}
           onModalCloseClick={handleModalCloseClick}
-          onModalButtonCancelClick={handleModalCloseClick}
+          onModalButtonCancelClick={handleModalButtonCancelClick}
           onImportButtonClick={handleImportButtonClick}
         />
       )}

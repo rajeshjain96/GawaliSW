@@ -15,6 +15,7 @@ const entryRouter = require("./routers/entry.router.js");
 const paymentRouter = require("./routers/payment.router.js");
 const billRouter = require("./routers/bill.router.js");
 const milkrateRouter = require("./routers/milkrate.router.js");
+const last_entryRouter = require("./routers/last_entry.router.js");
 
 //till here
 const roleRouter = require("./routers/role.router.js");
@@ -41,6 +42,7 @@ app.use("/products", auntheticateUser, logActivity, productRouter);
 app.use("/enquiries", auntheticateUser, logActivity, enquiryRouter);
 app.use("/quotations", auntheticateUser, logActivity, QuotationRouter);
 app.use("/customers", auntheticateUser, logActivity, customerRouter);
+app.use("/last_entries", auntheticateUser, logActivity, last_entryRouter);
 app.use("/milkrates", auntheticateUser, logActivity, milkrateRouter);
 
 app.use("/payments", auntheticateUser, logActivity, paymentRouter);

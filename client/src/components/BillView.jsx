@@ -1,23 +1,49 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 
 const BillView = () => {
   const { billId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const month = searchParams.get('month');
+  const year = searchParams.get('year');
+
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [dailyEntries, setDailyEntries] = useState([]);
   const [monthlySummary, setMonthlySummary] = useState(null);
   const [todayStr, setTodayStr] = useState("");
 
   const fetchBillDetails = async () => {
+    if (!billId || !month || !year) {
+      console.error("BillView: Missing billId, month, or year parameters.");
+      alert("Missing bill details (month/year/ID). Cannot load bill.");
+      navigate("/admin/bills");
+      return;
+    }
+    const parsedYear = parseInt(year, 10);
+    const parsedMonth = parseInt(month, 10);
+
+    if (isNaN(parsedYear) || isNaN(parsedMonth) || parsedYear < 2000 || parsedMonth < 1 || parsedMonth > 12) {
+      console.error("BillView: Invalid year or month format in URL parameters.");
+      alert("Invalid bill date (year/month). Cannot load bill.");
+      navigate("/admin/bills");
+      return;
+    }
+
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/bills/${billId}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/bills/${parsedYear}/${parsedMonth}/${billId}`);
       const bill = res.data;
 
+      if (!bill) {
+        alert("Bill not found for the specified month/year.");
+        navigate("/admin/bills");
+        return;
+      }
+
       setSelectedCustomer({
-        name: bill.full_name,
-        mobileNumber: bill.mobile,
+        name: bill.name,
+        mobileNumber: bill.mobileNumber,
       });
 
       const entries = bill.entries || [];
@@ -26,21 +52,25 @@ const BillView = () => {
       const totalDelivered = entries.reduce((sum, e) => sum + (parseFloat(e.qty) || 0), 0);
       setMonthlySummary({
         totalDelivered,
-        totalMonthlyAmount: bill.total || 0,
+        totalMonthlyAmount: bill.totalMonthlyAmount || 0,
       });
 
-      const date = bill.generated_date || new Date();
+      const date = bill.updateDate || new Date();
       setTodayStr(new Date(date).toLocaleDateString("en-IN"));
     } catch (err) {
       console.error("Failed to load bill:", err);
-      alert("Unable to fetch bill details. Please try again.");
+      if (err.response && err.response.status === 404) {
+          alert("Bill not found.");
+      } else {
+          alert("Unable to fetch bill details. Please try again.");
+      }
       navigate("/admin/bills");
     }
   };
 
   useEffect(() => {
     fetchBillDetails();
-  }, []);
+  }, [billId, month, year]);
 
   return (
     <div className="p-4">

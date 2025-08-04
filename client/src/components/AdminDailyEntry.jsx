@@ -208,11 +208,12 @@ export default function AdminDailyEntry(props) {
     setFlagLoad(true);
     const dateToDisplay = resolveSelectedDate(option, customDate);
     const { year, month } = getYearMonthFromDate(dateToDisplay);
+    const day = parseInt(dateToDisplay.split('-')[2], 10); 
 
     let entriesForCurrentMonthYear = [];
     try {
       const entryRes = await axios(
-        `${import.meta.env.VITE_API_URL}/entries/${year}/${month}`
+        `${import.meta.env.VITE_API_URL}/entries/${year}/${month}/${day}`
       );
       entriesForCurrentMonthYear = entryRes.data;
       setAllEntriesFromDatabase(entriesForCurrentMonthYear);

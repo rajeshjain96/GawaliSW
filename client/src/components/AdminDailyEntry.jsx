@@ -29,14 +29,10 @@ export default function AdminDailyEntry(props) {
   let [modalQty, setModalQty] = useState("");
   let [selectedIds, setSelectedIds] = useState([]);
   let [currentDayEntryList, setCurrentDayEntryList] = useState([]);
-<<<<<<< HEAD
+
   let [filteredCurrentDayEntryList, setFilteredCurrentDayEntryList] = useState(
     []
   );
-=======
-  let [filteredCurrentDayEntryList, setFilteredCurrentDayEntryList] =
-    useState([]);
->>>>>>> upstream/master
   let [action, setAction] = useState("list");
   let [userToBeEdited, setUserToBeEdited] = useState("");
   let [flagLoad, setFlagLoad] = useState(false);
@@ -121,14 +117,14 @@ export default function AdminDailyEntry(props) {
 
   async function fetchLatestEntryDate() {
     try {
-        const latestEntryRes = await axios.get(
-            `${import.meta.env.VITE_API_URL}/entries/latest-date`
-        );
-        const latestDate = latestEntryRes.data.last_entry_date;
-        setGlobalLatestEntryDate(latestDate ? new Date(latestDate) : null);
+      const latestEntryRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/entries/latest-date`
+      );
+      const latestDate = latestEntryRes.data.last_entry_date;
+      setGlobalLatestEntryDate(latestDate ? new Date(latestDate) : null);
     } catch (error) {
-        console.error("Failed to fetch latest entry date:", error);
-        setGlobalLatestEntryDate(null);
+      console.error("Failed to fetch latest entry date:", error);
+      setGlobalLatestEntryDate(null);
     }
   }
 
@@ -141,10 +137,13 @@ export default function AdminDailyEntry(props) {
         const countUsers = userRes.data.filter(
           (user) => user.roleId === "68691372fa624c1dff2e06be"
         ).length;
-        setTotalUsersWithRoleId(countUsers);        
+        setTotalUsersWithRoleId(countUsers);
         await fetchLatestEntryDate();
-        await fetchEntriesForDisplay(selectedDateOption, anotherDate, userRes.data);
-
+        await fetchEntriesForDisplay(
+          selectedDateOption,
+          anotherDate,
+          userRes.data
+        );
       } catch (error) {
         showMessage("Something went wrong while fetching initial data.");
         setFlagLoad(false);
@@ -158,48 +157,58 @@ export default function AdminDailyEntry(props) {
       if (globalLatestEntryDate && totalUsersWithRoleId > 0) {
         const latestDateISO = globalLatestEntryDate.toISOString().split("T")[0];
         const { year, month } = getYearMonthFromDate(latestDateISO);
-        const day = parseInt(latestDateISO.split('-')[2], 10);
-        
+        const day = parseInt(latestDateISO.split("-")[2], 10);
+
         let entriesForLatestDate = [];
         try {
-            const entryRes = await axios(
-                `${import.meta.env.VITE_API_URL}/entries/${year}/${month}/${day}`
-            );
-            entriesForLatestDate = entryRes.data;
+          const entryRes = await axios(
+            `${import.meta.env.VITE_API_URL}/entries/${year}/${month}/${day}`
+          );
+          entriesForLatestDate = entryRes.data;
         } catch (error) {
-            entriesForLatestDate = [];
+          entriesForLatestDate = [];
         }
 
-        const countValidDeliveredQtyForLatestDate = entriesForLatestDate.filter((entry) => {
+        const countValidDeliveredQtyForLatestDate = entriesForLatestDate.filter(
+          (entry) => {
             const deliveredQty = entry.delivered_qty;
-            return deliveredQty !== "" && !isNaN(Number(deliveredQty)) && Number(deliveredQty) >= 0;
-        }).length;
+            return (
+              deliveredQty !== "" &&
+              !isNaN(Number(deliveredQty)) &&
+              Number(deliveredQty) >= 0
+            );
+          }
+        ).length;
 
-        const isDayCompletelyFilled = countValidDeliveredQtyForLatestDate === totalUsersWithRoleId;
+        const isDayCompletelyFilled =
+          countValidDeliveredQtyForLatestDate === totalUsersWithRoleId;
         if (!isDayCompletelyFilled) {
-            const msg = `Please enter the data of ${globalLatestEntryDate.toLocaleDateString()} date.`;
-            setValidationMessage(msg);
-            setValidationMessageDate(globalLatestEntryDate);
+          const msg = `Please enter the data of ${globalLatestEntryDate.toLocaleDateString()} date.`;
+          setValidationMessage(msg);
+          setValidationMessageDate(globalLatestEntryDate);
         } else {
-            const nextDay = new Date(globalLatestEntryDate);
-            nextDay.setDate(nextDay.getDate() + 1);
-            const msg = `Please enter the data of ${nextDay.toLocaleDateString()} date.`;
-            setValidationMessage(msg);
-            setValidationMessageDate(nextDay);
+          const nextDay = new Date(globalLatestEntryDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const msg = `Please enter the data of ${nextDay.toLocaleDateString()} date.`;
+          setValidationMessage(msg);
+          setValidationMessageDate(nextDay);
         }
       } else if (totalUsersWithRoleId > 0) {
         const today = new Date();
-        setValidationMessage(`No entries found. Please enter data for today (${today.toLocaleDateString()}).`);
+        setValidationMessage(
+          `No entries found. Please enter data for today (${today.toLocaleDateString()}).`
+        );
         setValidationMessageDate(today);
       } else {
-        setValidationMessage("No entries or users found in the database. Please add users and entries.");
+        setValidationMessage(
+          "No entries or users found in the database. Please add users and entries."
+        );
         setValidationMessageDate(null);
       }
     }
 
     checkValidationStatus();
   }, [globalLatestEntryDate, totalUsersWithRoleId]);
-
 
   async function fetchEntriesForDisplay(
     option = selectedDateOption,
@@ -219,7 +228,6 @@ export default function AdminDailyEntry(props) {
       entriesForCurrentDay = entryRes.data;
     } catch (error) {
       if (error.response && error.response.status === 404) {
-
         showMessage(`No entries found for ${dateToDisplay}.`);
       } else {
         showMessage("Something went wrong while fetching entries.");
@@ -230,7 +238,6 @@ export default function AdminDailyEntry(props) {
       const mergedListForCurrentDay = userList
         .filter((user) => user.roleId === "68691372fa624c1dff2e06be")
         .map((user) => {
-
           const entryForSelectedDate = entriesForCurrentDay.find((entry) => {
             const entryDateFormatted =
               entry.date instanceof Date
@@ -238,7 +245,9 @@ export default function AdminDailyEntry(props) {
                 : typeof entry.date === "string" && entry.date.includes("T")
                 ? entry.date.split("T")[0]
                 : entry.date;
-            return entry.userId === user._id && entryDateFormatted === dateToDisplay;
+            return (
+              entry.userId === user._id && entryDateFormatted === dateToDisplay
+            );
           });
           return {
             _id: user._id,
@@ -262,7 +271,7 @@ export default function AdminDailyEntry(props) {
       setFlagLoad(false);
     }
   }
-  
+
   function fetchDataForSelectedDate(
     option = selectedDateOption,
     customDate = anotherDate
@@ -293,9 +302,8 @@ export default function AdminDailyEntry(props) {
     ) {
       entryForBackEnd.date = entryForBackEnd.date.split("T")[0];
     }
-    
-    const { year, month } = getYearMonthFromDate(entryForBackEnd.date);
 
+    const { year, month } = getYearMonthFromDate(entryForBackEnd.date);
 
     if (action === "add") {
       setFlagLoad(true);
@@ -306,9 +314,12 @@ export default function AdminDailyEntry(props) {
           { headers: { "Content-type": "application/json" } }
         );
 
-
         await fetchLatestEntryDate();
-        await fetchEntriesForDisplay(selectedDateOption, anotherDate, allUsersFromDatabase);
+        await fetchEntriesForDisplay(
+          selectedDateOption,
+          anotherDate,
+          allUsersFromDatabase
+        );
 
         message = "Entry added successfully";
         showMessage(message);
@@ -338,9 +349,12 @@ export default function AdminDailyEntry(props) {
           { headers: { "Content-type": "application/json" } }
         );
 
-
         await fetchLatestEntryDate();
-        await fetchEntriesForDisplay(selectedDateOption, anotherDate, allUsersFromDatabase);
+        await fetchEntriesForDisplay(
+          selectedDateOption,
+          anotherDate,
+          allUsersFromDatabase
+        );
 
         message = "Entry Updated successfully";
         showMessage(message);
@@ -385,8 +399,10 @@ export default function AdminDailyEntry(props) {
     }
 
     const entry = modalUser;
-    
-    const entryDate = new Date(entry.date || resolveSelectedDate(selectedDateOption, anotherDate));
+
+    const entryDate = new Date(
+      entry.date || resolveSelectedDate(selectedDateOption, anotherDate)
+    );
     const entryYear = entryDate.getFullYear();
     const entryMonth = entryDate.getMonth() + 1;
 
@@ -397,7 +413,9 @@ export default function AdminDailyEntry(props) {
       date: entry.date || resolveSelectedDate(selectedDateOption, anotherDate),
     };
 
-    const url = `${import.meta.env.VITE_API_URL}/entries/${entryYear}/${entryMonth}`;
+    const url = `${
+      import.meta.env.VITE_API_URL
+    }/entries/${entryYear}/${entryMonth}`;
     const method = axios.post;
 
     try {
@@ -405,10 +423,8 @@ export default function AdminDailyEntry(props) {
         headers: { "Content-type": "application/json" },
       });
 
-
       await fetchLatestEntryDate();
       await fetchEntriesForDisplay(
-
         selectedDateOption,
         anotherDate,
         allUsersFromDatabase
@@ -448,11 +464,12 @@ export default function AdminDailyEntry(props) {
       selectedDateOption,
       anotherDate
     );
-    const { year: currentYear, month: currentMonth } = getYearMonthFromDate(currentSelectedDate);
+    const { year: currentYear, month: currentMonth } =
+      getYearMonthFromDate(currentSelectedDate);
 
     for (const id of selectedIds) {
       const entry = currentDayEntryList.find((e) => e._id === id);
-      
+
       const entryDate = new Date(entry.date || currentSelectedDate);
       const entryYear = entryDate.getFullYear();
       const entryMonth = entryDate.getMonth() + 1;
@@ -464,8 +481,9 @@ export default function AdminDailyEntry(props) {
         date: entry.date || currentSelectedDate,
       };
 
-
-      const url = `${import.meta.env.VITE_API_URL}/entries/${entryYear}/${entryMonth}`;
+      const url = `${
+        import.meta.env.VITE_API_URL
+      }/entries/${entryYear}/${entryMonth}`;
 
       try {
         await axios.post(url, entryData, {
@@ -476,9 +494,12 @@ export default function AdminDailyEntry(props) {
       }
     }
 
-
     await fetchLatestEntryDate();
-    await fetchEntriesForDisplay(selectedDateOption, anotherDate, allUsersFromDatabase);
+    await fetchEntriesForDisplay(
+      selectedDateOption,
+      anotherDate,
+      allUsersFromDatabase
+    );
 
     showMessage("Marked selected entries as Delivered");
     setSelectedIds([]);
@@ -491,7 +512,8 @@ export default function AdminDailyEntry(props) {
       selectedDateOption,
       anotherDate
     );
-    const { year: currentYear, month: currentMonth } = getYearMonthFromDate(currentSelectedDate);
+    const { year: currentYear, month: currentMonth } =
+      getYearMonthFromDate(currentSelectedDate);
 
     for (const id of selectedIds) {
       const userEntry = currentDayEntryList.find((e) => e._id === id);
@@ -507,7 +529,9 @@ export default function AdminDailyEntry(props) {
         date: userEntry.date || currentSelectedDate,
       };
 
-      const url = `${import.meta.env.VITE_API_URL}/entries/${entryYear}/${entryMonth}`;
+      const url = `${
+        import.meta.env.VITE_API_URL
+      }/entries/${entryYear}/${entryMonth}`;
 
       try {
         await axios.post(url, entryData, {
@@ -518,9 +542,12 @@ export default function AdminDailyEntry(props) {
       }
     }
 
-
     await fetchLatestEntryDate();
-    await fetchEntriesForDisplay(selectedDateOption, anotherDate, allUsersFromDatabase);
+    await fetchEntriesForDisplay(
+      selectedDateOption,
+      anotherDate,
+      allUsersFromDatabase
+    );
     showMessage("Marked selected entries as Khada");
     setSelectedIds([]);
     setFlagLoad(false);
@@ -545,12 +572,17 @@ export default function AdminDailyEntry(props) {
       const entryMonth = entryDate.getMonth() + 1;
 
       await axios.delete(
-
-        `${import.meta.env.VITE_API_URL}/entries/${entryYear}/${entryMonth}/${entry.entryId}`
+        `${import.meta.env.VITE_API_URL}/entries/${entryYear}/${entryMonth}/${
+          entry.entryId
+        }`
       );
 
       await fetchLatestEntryDate();
-      await fetchEntriesForDisplay(selectedDateOption, anotherDate, allUsersFromDatabase);
+      await fetchEntriesForDisplay(
+        selectedDateOption,
+        anotherDate,
+        allUsersFromDatabase
+      );
       showMessage(`Entry - ${entry.name} deleted successfully.`);
     } catch (error) {
       showMessage("Something went wrong, refresh the page");
@@ -757,7 +789,11 @@ export default function AdminDailyEntry(props) {
         if (result.success) {
           setAllUsersFromDatabase(result.updatedList);
 
-          fetchEntriesForDisplay(selectedDateOption, anotherDate, result.updatedList);
+          fetchEntriesForDisplay(
+            selectedDateOption,
+            anotherDate,
+            result.updatedList
+          );
         }
         showMessage(result.message);
       }
@@ -771,7 +807,11 @@ export default function AdminDailyEntry(props) {
         if (result.success) {
           setAllUsersFromDatabase(result.updatedList);
 
-          fetchEntriesForDisplay(selectedDateOption, anotherDate, result.updatedList);
+          fetchEntriesForDisplay(
+            selectedDateOption,
+            anotherDate,
+            result.updatedList
+          );
         }
         showMessage(result.message);
       }

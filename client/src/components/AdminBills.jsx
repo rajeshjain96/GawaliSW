@@ -15,7 +15,7 @@ import {
   analyseImportExcelSheet,
 } from "../external/vite-sdk";
 import { getEmptyObject, getShowInList } from "../external/vite-sdk";
-import BillForm from "./BillForm";
+import AdminBillForm from "./AdminBillForm";
 import { getMonthlySummary } from "./MonthlySummary";
 import BillShare from "./BillShare";
 
@@ -44,6 +44,7 @@ export default function Bills(props) {
   let [recordsToBeUpdated, setRecordsToBeUpdated] = useState([]);
   let [cntUpdate, setCntUpdate] = useState(0);
   let [cntAdd, setCntAdd] = useState(0);
+  let [cntShow, setCntShow] = useState(window.maxCnt); // Initially 5 attributes are shown
   let { selectedEntity } = props;
   let { flagFormInvalid } = props;
   let { flagToggleButton } = props;
@@ -66,15 +67,11 @@ export default function Bills(props) {
     totalMonthlyAmount: { message: "", onlyDigits: true },
   };
 
-  let [showInList, setShowInList] = useState(getShowInList(billSchema));
+  let [showInList, setShowInList] = useState(
+    getShowInList(billSchema, cntShow)
+  );
 
-  let [emptyBill, setEmptyBill] = useState({
-    ...getEmptyObject(billSchema),
-    roleId: "68691372fa624c1dff2e06be",
-    name: "",
-    totalDelivered: 0,
-    totalMonthlyAmount: 0,
-  });
+  let [emptyBill, setEmptyBill] = useState(getEmptyObject(billSchema));
 
   useEffect(() => {
     fetchAndProcessData();
@@ -87,7 +84,9 @@ export default function Bills(props) {
       const monthToFetch = parseInt(selectedMonth, 10);
 
       if (isNaN(yearToFetch) || isNaN(monthToFetch)) {
-        console.error("Invalid year or month selected. Cannot fetch monthly summary.");
+        console.error(
+          "Invalid year or month selected. Cannot fetch monthly summary."
+        );
         setFlagLoad(false);
         return;
       }
@@ -100,7 +99,11 @@ export default function Bills(props) {
       const userList = userRes.data || [];
       const billListRaw = billRes.data;
 
-      const allMonthlySummaries = await getMonthlySummary(yearToFetch, monthToFetch, userList);
+      const allMonthlySummaries = await getMonthlySummary(
+        yearToFetch,
+        monthToFetch,
+        userList
+      );
 
       const currentMonthYear = `${selectedYear}-${selectedMonth}`;
 
@@ -194,14 +197,18 @@ export default function Bills(props) {
       let response;
       if (billForBackEnd.billId) {
         response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/bills/${selectedYear}/${selectedMonth}/${billForBackEnd.billId}`,
+          `${
+            import.meta.env.VITE_API_URL
+          }/bills/${selectedYear}/${selectedMonth}/${billForBackEnd.billId}`,
           monthlyBillPayload,
           { headers: { "Content-type": "application/json" } }
         );
         message = "Monthly bill record updated successfully.";
       } else {
         response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/bills/${selectedYear}/${selectedMonth}`,
+          `${
+            import.meta.env.VITE_API_URL
+          }/bills/${selectedYear}/${selectedMonth}`,
           monthlyBillPayload,
           { headers: { "Content-type": "application/json" } }
         );
@@ -214,7 +221,9 @@ export default function Bills(props) {
       await fetchAndProcessData();
     } catch (error) {
       console.error("Form submission error:", error);
-      showMessage("Something went wrong with form submission, refresh the page");
+      showMessage(
+        "Something went wrong with form submission, refresh the page"
+      );
     } finally {
       setFlagLoad(false);
     }
@@ -258,8 +267,8 @@ export default function Bills(props) {
       showMessage("Minimum 1 field should be selected.");
       return;
     }
-    if (cnt === 5 && checked) {
-      showMessage("Maximum 5 fields can be selected.");
+    if (cnt == window.maxCnt && checked) {
+      showMessage("Maximum " + window.maxCnt + " fields can be selected.");
       return;
     }
     let att = [...showInList];
@@ -267,8 +276,10 @@ export default function Bills(props) {
       let p = { ...e };
       if (index === selectedIndex && checked) {
         p.show = true;
+        setCntShow(cnt + 1);
       } else if (index === selectedIndex && !checked) {
         p.show = false;
+        setCntShow(cnt - 1);
       }
       return p;
     });
@@ -286,8 +297,10 @@ export default function Bills(props) {
     setDirection(d);
     if (d === false) {
       list.sort((a, b) => {
-        const valA = a[field] !== null && a[field] !== undefined ? a[field] : "";
-        const valB = b[field] !== null && b[field] !== undefined ? b[field] : "";
+        const valA =
+          a[field] !== null && a[field] !== undefined ? a[field] : "";
+        const valB =
+          b[field] !== null && b[field] !== undefined ? b[field] : "";
 
         if (typeof valA === "string" && typeof valB === "string") {
           return valA.localeCompare(valB);
@@ -302,8 +315,10 @@ export default function Bills(props) {
       });
     } else {
       list.sort((a, b) => {
-        const valA = a[field] !== null && a[field] !== undefined ? a[field] : "";
-        const valB = b[field] !== null && b[field] !== undefined ? b[field] : "";
+        const valA =
+          a[field] !== null && a[field] !== undefined ? a[field] : "";
+        const valB =
+          b[field] !== null && b[field] !== undefined ? b[field] : "";
 
         if (typeof valA === "string" && typeof valB === "string") {
           return valB.localeCompare(valA);
@@ -501,7 +516,9 @@ export default function Bills(props) {
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/bills/${selectedYear}/${selectedMonth}`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/bills/${selectedYear}/${selectedMonth}`,
         billPayload
       );
 
@@ -516,7 +533,9 @@ export default function Bills(props) {
       const messageText =
         `Monthly Bill Details for ${name} (${selectedMonth}/${selectedYear}):\n` +
         `Total Delivered Units: ${totalDelivered}\n` +
-        `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(2)}\n\n ,here is your bill for ${billLink}`;
+        `Total Monthly Amount: ₹${totalMonthlyAmount.toFixed(
+          2
+        )}\n\n ,here is your bill for ${billLink}`;
 
       const encodedMessage = encodeURIComponent(messageText);
       const whatsappUrl = `https://wa.me/${bill.mobileNumber}?text=${encodedMessage}`;
@@ -544,7 +563,6 @@ export default function Bills(props) {
     shareBillViaWhatsApp(bill);
   };
 
-
   if (flagLoad) {
     return (
       <div className="my-5 text-center">
@@ -553,7 +571,8 @@ export default function Bills(props) {
     );
   }
 
-  const showListContent = action === "list" && !showBillShare && !showBillFormForView;
+  const showListContent =
+    action === "list" && !showBillShare && !showBillFormForView;
 
   return (
     <>
@@ -574,7 +593,7 @@ export default function Bills(props) {
 
       {(action === "add" || action === "update" || showBillFormForView) && (
         <div className="row">
-          <BillForm
+          <AdminBillForm
             billSchema={billSchema}
             billValidations={billValidations}
             emptyBill={emptyBill}
@@ -618,7 +637,9 @@ export default function Bills(props) {
                   const month = String(i + 1).padStart(2, "0");
                   return (
                     <option key={month} value={month}>
-                      {new Date(0, i).toLocaleString("default", { month: "long" })}
+                      {new Date(0, i).toLocaleString("default", {
+                        month: "long",
+                      })}
                     </option>
                   );
                 })}
@@ -634,7 +655,11 @@ export default function Bills(props) {
                 {Array.from({ length: 5 }, (_, i) => {
                   const year = today.getFullYear() - 2 + i;
                   return (
-                    <option key={year} value={year} disabled={year > currentYear}>
+                    <option
+                      key={year}
+                      value={year}
+                      disabled={year > currentYear}
+                    >
                       {year}
                     </option>
                   );
@@ -646,6 +671,7 @@ export default function Bills(props) {
           {filteredBillList.length !== 0 && (
             <CheckBoxHeaders
               showInList={showInList}
+              cntShow={cntShow}
               onListCheckBoxClick={handleListCheckBoxClick}
             />
           )}
@@ -672,9 +698,12 @@ export default function Bills(props) {
                 showInList={showInList}
                 sortedField={sortedField}
                 direction={direction}
+                cntShow={cntShow}
                 onHeaderClick={handleHeaderClick}
               />
-              <div className="col-2 d-flex justify-content-center align-items-center gap-2">Actions</div>
+              <div className="col-2 d-flex justify-content-center align-items-center gap-2">
+                Actions
+              </div>
             </div>
           )}
 
@@ -694,6 +723,7 @@ export default function Bills(props) {
                     listSize={filteredBillList.length}
                     selectedEntity={selectedEntity}
                     showInList={showInList}
+                    cntShow={cntShow}
                     VITE_API_URL={import.meta.env.VITE_API_URL}
                     onToggleText={handleToggleText}
                   />

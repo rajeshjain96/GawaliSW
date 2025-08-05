@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\GawaliSW\\logs\\.6b12c3bda900ca02c7831f3013643f6338d5e235-audit.json",
+    "files": [
+        {
+            "date": 1754376223759,
+            "name": "C:\\GawaliSW\\logs\\error-2025-08-05.log",
+            "hash": "e13878d22b6318b714b3c50bd1980a3ee5a0d0e41ece81878b2b260ff7ed1f1e"
+        }
+    ],
+    "hashType": "sha256"
+}

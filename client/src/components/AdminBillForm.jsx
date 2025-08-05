@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fieldValidate } from "../external/vite-sdk";
 import "../formstyles.css";
 
-export default function BillForm(props) {
+export default function AdminBillForm(props) {
   let [bill, setBill] = useState({});
   let [errorBill, setErrorBill] = useState(props.billValidations);
   let [flagFormInvalid, setFlagFormInvalid] = useState(false);
@@ -22,11 +22,11 @@ export default function BillForm(props) {
       setErrorBill(props.billValidations);
     } else if (action === "update") {
       setFlagFormInvalid(false);
-      setBill({ ...props.userToBeEdited }); 
+      setBill({ ...props.userToBeEdited });
 
       const initialErrorState = {};
       for (const key in props.billValidations) {
-          initialErrorState[key] = { ...props.billValidations[key], message: "" };
+        initialErrorState[key] = { ...props.billValidations[key], message: "" };
       }
       setErrorBill(initialErrorState);
     }
@@ -36,16 +36,18 @@ export default function BillForm(props) {
     let name = event.target.name;
     let value = event.target.value;
 
-    const currentFieldSchema = billSchema.find(f => f.attribute === name);
-    const isNumberField = (currentFieldSchema && currentFieldSchema.type === 'normal' && (
-                               currentFieldSchema.attribute === 'totalDelivered' ||
-                               currentFieldSchema.attribute === 'totalMonthlyAmount'));
-    
+    const currentFieldSchema = billSchema.find((f) => f.attribute === name);
+    const isNumberField =
+      currentFieldSchema &&
+      currentFieldSchema.type === "normal" &&
+      (currentFieldSchema.attribute === "totalDelivered" ||
+        currentFieldSchema.attribute === "totalMonthlyAmount");
+
     let newValueParsed;
     if (isNumberField) {
-        newValueParsed = parseFloat(value) || 0;
+      newValueParsed = parseFloat(value) || 0;
     } else {
-        newValueParsed = value;
+      newValueParsed = value;
     }
 
     let updatedBill = { ...bill, [name]: newValueParsed };
@@ -70,8 +72,8 @@ export default function BillForm(props) {
     let name = event.target.name;
     let errBill = { ...errorBill };
     if (errBill[name] && errBill[name].message) {
-        errBill[name].message = "";
-        setErrorBill(errBill);
+      errBill[name].message = "";
+      setErrorBill(errBill);
     }
   }
 
@@ -79,37 +81,47 @@ export default function BillForm(props) {
     let formHasErrors = false;
     const newErrorBill = {};
     for (const key in props.billValidations) {
-        newErrorBill[key] = { ...props.billValidations[key], message: "" };
+      newErrorBill[key] = { ...props.billValidations[key], message: "" };
     }
 
     billSchema.forEach((field) => {
-        const attribute = field.attribute;
-        if (attribute === "name") return;
+      const attribute = field.attribute;
+      if (attribute === "name") return;
 
-        const inputType = (field.type === 'normal' && (
-                                field.attribute === 'totalDelivered' ||
-                                field.attribute === 'totalMonthlyAmount')) ? 'number' : 'text';
+      const inputType =
+        field.type === "normal" &&
+        (field.attribute === "totalDelivered" ||
+          field.attribute === "totalMonthlyAmount")
+          ? "number"
+          : "text";
 
-        const fieldValue = bill[attribute];
-        const validationRule = props.billValidations[attribute];
+      const fieldValue = bill[attribute];
+      const validationRule = props.billValidations[attribute];
 
-        if (validationRule) {
-            let message = "";
-            if (
-                (inputType === 'number' && (fieldValue === null || fieldValue === undefined || fieldValue === "")) ||
-                (inputType !== 'number' && (fieldValue === "" || fieldValue === null || fieldValue === undefined || String(fieldValue).trim() === ""))
-            ) {
-                message = "Required...";
-            } else {
-                const dummyEvent = { target: { name: attribute, value: fieldValue } };
-                message = fieldValidate(dummyEvent, props.billValidations);
-            }
-
-            if (message !== "") {
-                formHasErrors = true;
-                newErrorBill[attribute].message = message;
-            }
+      if (validationRule) {
+        let message = "";
+        if (
+          (inputType === "number" &&
+            (fieldValue === null ||
+              fieldValue === undefined ||
+              fieldValue === "")) ||
+          (inputType !== "number" &&
+            (fieldValue === "" ||
+              fieldValue === null ||
+              fieldValue === undefined ||
+              String(fieldValue).trim() === ""))
+        ) {
+          message = "Required...";
+        } else {
+          const dummyEvent = { target: { name: attribute, value: fieldValue } };
+          message = fieldValidate(dummyEvent, props.billValidations);
         }
+
+        if (message !== "") {
+          formHasErrors = true;
+          newErrorBill[attribute].message = message;
+        }
+      }
     });
 
     setErrorBill(newErrorBill);
@@ -132,21 +144,21 @@ export default function BillForm(props) {
     return billSchema.map((field, index) => {
       if (field.attribute === "name") {
         return (
-            <div className="col-6 my-2" key={field.attribute}>
-              <div className="text-bold my-1">
-                <label>Name</label>
-              </div>
-              <div className="px-0">
-                <input
-                  type="text"
-                  className="form-control"
-                  name="name"
-                  value={bill.name || ""}
-                  readOnly
-                  disabled
-                />
-              </div>
+          <div className="col-6 my-2" key={field.attribute}>
+            <div className="text-bold my-1">
+              <label>Name</label>
             </div>
+            <div className="px-0">
+              <input
+                type="text"
+                className="form-control"
+                name="name"
+                value={bill.name || ""}
+                readOnly
+                disabled
+              />
+            </div>
+          </div>
         );
       }
 
@@ -176,9 +188,12 @@ export default function BillForm(props) {
               className="form-control"
               name={field.attribute}
               value={
-                  bill[field.attribute] === null || bill[field.attribute] === undefined
-                    ? (inputType === "number" ? 0 : "")
-                    : bill[field.attribute]
+                bill[field.attribute] === null ||
+                bill[field.attribute] === undefined
+                  ? inputType === "number"
+                    ? 0
+                    : ""
+                  : bill[field.attribute]
               }
               onChange={handleTextFieldChange}
               onBlur={handleBlur}
@@ -208,10 +223,7 @@ export default function BillForm(props) {
           {renderFormFields()}
 
           <div className="col-12">
-            <button
-              className="btn btn-primary"
-              type="submit"
-            >
+            <button className="btn btn-primary" type="submit">
               {(action + " " + selectedEntity.singularName).toUpperCase()}
             </button>{" "}
             &nbsp;{" "}
@@ -225,26 +237,6 @@ export default function BillForm(props) {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { useEffect, useState } from "react";
 // import { fieldValidate } from "../external/vite-sdk";
@@ -270,9 +262,9 @@ export default function BillForm(props) {
 //       setErrorBill(props.billValidations);
 //     } else if (action === "update") {
 //       setFlagFormInvalid(false);
-      
+
 //       const billModeForForm = props.userToBeEdited.bill_mode || "Cash";
-//       setBill({ ...props.userToBeEdited, bill_mode: billModeForForm }); 
+//       setBill({ ...props.userToBeEdited, bill_mode: billModeForForm });
 
 //       const initialErrorState = {};
 //       for (const key in props.billValidations) {
@@ -290,7 +282,7 @@ export default function BillForm(props) {
 //     const isNumberField = (currentFieldSchema && currentFieldSchema.type === 'normal' && (
 //                                currentFieldSchema.attribute === 'totalDelivered' ||
 //                                currentFieldSchema.attribute === 'totalMonthlyAmount'));
-    
+
 //     let newValueParsed;
 //     if (isNumberField) {
 //         newValueParsed = parseFloat(value) || 0;
@@ -537,26 +529,6 @@ export default function BillForm(props) {
 //   );
 // }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // // import { useEffect, useState } from "react";
 // // import { fieldValidate } from "../external/vite-sdk";
 // // import "../formstyles.css";
@@ -584,10 +556,10 @@ export default function BillForm(props) {
 // //       setErrorBill(props.billValidations);
 // //     } else if (action === "update") {
 // //       setFlagFormInvalid(false);
-      
+
 // //       const paidAmountForForm = props.userToBeEdited.paidAmount === 0 ? null : props.userToBeEdited.paidAmount;
 // //       const billModeForForm = props.userToBeEdited.bill_mode || "Cash"; // Default to Cash if not set
-// //       setBill({ ...props.userToBeEdited, paidAmount: paidAmountForForm, bill_mode: billModeForForm }); 
+// //       setBill({ ...props.userToBeEdited, paidAmount: paidAmountForForm, bill_mode: billModeForForm });
 // //       setOriginalCumulativePaidAmount(parseFloat(props.userToBeEdited.paidAmount) || 0);
 
 // //       const initialErrorState = {};
@@ -608,7 +580,7 @@ export default function BillForm(props) {
 // //                            currentFieldSchema.attribute === 'totalMonthlyAmount' ||
 // //                            currentFieldSchema.attribute === 'paidAmount' ||
 // //                            currentFieldSchema.attribute === 'balanceAmount'));
-    
+
 // //     let newValueParsed;
 // //     if (name === 'paidAmount' && value === "") {
 // //         newValueParsed = null;
@@ -622,9 +594,9 @@ export default function BillForm(props) {
 
 // //     const currentTotalMonthlyAmount = parseFloat(updatedBill.totalMonthlyAmount) || 0;
 // //     const newAmountEnteredInPaidField = parseFloat(updatedBill.paidAmount) || 0;
-    
+
 // //     const effectiveCumulativePaidAmount = originalCumulativePaidAmount + newAmountEnteredInPaidField;
-    
+
 // //     updatedBill.balanceAmount = currentTotalMonthlyAmount - effectiveCumulativePaidAmount;
 
 // //     setBill(updatedBill);
@@ -725,10 +697,10 @@ export default function BillForm(props) {
 // //     setFlagFormInvalid(false);
 
 // //     const finalBillData = { ...bill };
-    
+
 // //     const newAmountEntered = parseFloat(finalBillData.paidAmount) || 0;
 // //     finalBillData.paidAmount = originalCumulativePaidAmount + newAmountEntered;
-    
+
 // //     finalBillData.balanceAmount = (parseFloat(finalBillData.totalMonthlyAmount) || 0) - finalBillData.paidAmount;
 
 // //     if (finalBillData.paidAmount === null || isNaN(finalBillData.paidAmount)) {

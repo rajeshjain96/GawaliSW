@@ -7,7 +7,6 @@ import {
 } from "../external/vite-sdk";
 import AdminAreaForm from "./AdminAreaForm";
 import { BeatLoader } from "react-spinners";
-// import AArea from "./AArea";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import ModalImport from "./ModalImport";
@@ -16,6 +15,7 @@ import {
   recordsUpdateBulk,
   analyseImportExcelSheet,
 } from "../external/vite-sdk";
+import { getEmptyObject, getShowInList } from "../external/vite-sdk";
 
 export default function AdminAreas(props) {
   let [areaList, setAreaList] = useState([]);
@@ -35,6 +35,8 @@ export default function AdminAreas(props) {
   let [recordsToBeUpdated, setRecordsToBeUpdated] = useState([]);
   let [cntUpdate, setCntUpdate] = useState(0);
   let [cntAdd, setCntAdd] = useState(0);
+  let [cntShow, setCntShow] = useState(window.maxCnt); // Initially 5 attributes are shown
+
   let { selectedEntity } = props;
   let { flagFormInvalid } = props;
   let { flagToggleButton } = props;
@@ -47,8 +49,11 @@ export default function AdminAreas(props) {
     name: { message: "", mxLen: 200, mnLen: 4, onlyDigits: false },
     description: { message: "" },
   };
-  let [showInList, setShowInList] = useState(getShowInListFromAreaSchema());
-  let [emptyArea, setEmptyArea] = useState(getEmptyArea());
+  let [showInList, setShowInList] = useState(
+    getShowInList(areaSchema, cntShow)
+  );
+  let [emptyArea, setEmptyArea] = useState(getEmptyObject(areaSchema));
+
   function getShowInListFromAreaSchema() {
     let list = [];
     let cnt = 0;
@@ -245,8 +250,8 @@ export default function AdminAreas(props) {
       showMessage("Minimum 1 field should be selected.");
       return;
     }
-    if (cnt == 5 && checked) {
-      showMessage("Maximum 5 fields can be selected.");
+    if (cnt == window.maxCnt && checked) {
+      showMessage("Maximum " + window.maxCnt + " fields can be selected.");
       return;
     }
     let att = [...showInList];
@@ -254,8 +259,10 @@ export default function AdminAreas(props) {
       let p = { ...e };
       if (index == selectedIndex && checked) {
         p.show = true;
+        setCntShow(cnt + 1);
       } else if (index == selectedIndex && !checked) {
         p.show = false;
+        setCntShow(cnt - 1);
       }
       return p;
     });
@@ -497,9 +504,7 @@ export default function AdminAreas(props) {
       {filteredAreaList.length == 0 && areaList.length != 0 && (
         <div className="text-center">Nothing to show</div>
       )}
-      {areaList.length == 0 && (
-        <div className="text-center">List is empty</div>
-      )}
+      {areaList.length == 0 && <div className="text-center">List is empty</div>}
       {(action == "add" || action == "update") && (
         <div className="row">
           <AdminAreaForm
@@ -520,6 +525,7 @@ export default function AdminAreas(props) {
       {action == "list" && filteredAreaList.length != 0 && (
         <CheckBoxHeaders
           showInList={showInList}
+          cntShow={cntShow}
           onListCheckBoxClick={handleListCheckBoxClick}
         />
       )}
@@ -545,6 +551,7 @@ export default function AdminAreas(props) {
             showInList={showInList}
             sortedField={sortedField}
             direction={direction}
+            cntShow={cntShow}
             onHeaderClick={handleHeaderClick}
           />
           <div className="col-1">&nbsp;</div>
@@ -563,6 +570,8 @@ export default function AdminAreas(props) {
             listSize={filteredAreaList.length}
             selectedEntity={selectedEntity}
             showInList={showInList}
+            cntShow={cntShow}
+            VITE_API_URL={import.meta.env.VITE_API_URL}
             onEditButtonClick={handleEditButtonClick}
             onDeleteButtonClick={handleDeleteButtonClick}
             onToggleText={handleToggleText}

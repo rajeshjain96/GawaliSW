@@ -1,26 +1,24 @@
 import AdminAreas from "./AdminAreas";
 import AdminDailyEntry from "./AdminDailyEntry";
-// import AdminCustomers from "./AdminCustomers";
-import AdminEnquiries from "./AdminEnquiries";
 import AdminProducts from "./AdminProducts";
-import AdminQuotations from "./AdminQuotations";
 import AdminReportActivities from "./AdminReportActivities";
 import AdminRoles from "./AdminRoles";
 import AdminUsers from "./AdminUsers";
-import Customers from "./Customers"
-import Payments from "./Payments";
+import AdminPayments from "./AdminPayments";
 import BackButton from "./BackButton";
-import MilkRates from "./MilkRates"
-// import Calculations from "./Caculations"
-import Bills from "./Bills"
+import MilkRates from "./MilkRates";
+import AdminBills from "./AdminBills";
+import AdminCustomers from "./AdminCustomers";
 
 export default function ContentPage(props) {
   let { selectedEntity } = props;
-  let { flagToggleButton , onBack } = props;
+  let { flagToggleButton, onBack } = props;
   let { user } = props;
   return (
     <>
-    <div className="text-center"><BackButton onBack={onBack} /></div>
+      <div className="text-center">
+        <BackButton onBack={onBack} />
+      </div>
       {selectedEntity.isReady == false && (
         <h5 className="text-center">Work in Progress !</h5>
       )}
@@ -30,19 +28,6 @@ export default function ContentPage(props) {
           flagToggleButton={flagToggleButton}
         />
       )}
-      {selectedEntity.name == "Enquiries" && (
-        <AdminEnquiries
-          selectedEntity={selectedEntity}
-          flagToggleButton={flagToggleButton}
-          user={user}
-        />
-      )}
-      {/* {selectedEntity.name == "Customers" && (
-        <AdminCustomers
-          selectedEntity={selectedEntity}
-          flagToggleButton={flagToggleButton}
-        />
-      )} */}
       {selectedEntity.name == "Areas" && (
         <AdminAreas
           selectedEntity={selectedEntity}
@@ -62,35 +47,34 @@ export default function ContentPage(props) {
           flagToggleButton={flagToggleButton}
         />
       )}
-     
-      
+
       {/* added by rutuja */}
       {selectedEntity.name == "Customers" && (
-        <Customers
+        <AdminCustomers
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
       )}
-     {selectedEntity.name == "DailyEntries" && (
+      {selectedEntity.name == "DailyEntries" && (
         <AdminDailyEntry
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
       )}
       {selectedEntity.name == "Payments" && (
-        <Payments
+        <AdminPayments
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
       )}
-       {/* {selectedEntity.name == "Calculations" && (
+      {/* {selectedEntity.name == "Calculations" && (
         <Calculations
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
       )} */}
       {selectedEntity.name == "Bills" && (
-        <Bills
+        <AdminBills
           selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
@@ -103,11 +87,9 @@ export default function ContentPage(props) {
       )}
       {/* till here */}
 
-
       {selectedEntity.name == "Roles" && (
         <AdminRoles
-          selectedEntity
-          ={selectedEntity}
+          selectedEntity={selectedEntity}
           flagToggleButton={flagToggleButton}
         />
       )}

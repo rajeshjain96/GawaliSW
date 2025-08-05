@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fieldValidate } from "../external/vite-sdk";
 import "../formstyles.css";
 
-export default function PaymentForm(props) {
+export default function AdminPaymentForm(props) {
   let [payment, setPayment] = useState({});
   let [originalCumulativePaidAmount, setOriginalCumulativePaidAmount] = useState(0);
 
